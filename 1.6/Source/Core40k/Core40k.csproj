@@ -138,6 +138,7 @@
     <Compile Include="DefModExtensions\DefModExtension_InitialGoodwill.cs" />
     <Compile Include="DefModExtensions\DefModExtension_LockedByResearch.cs" />
     <Compile Include="DefModExtensions\DefModExtension_PawnKindRanks.cs" />
+    <Compile Include="DefModExtensions\DefModExtension_TargetBodyParts.cs" />
     <Compile Include="GameComponent_CoreUtils.cs" />
     <Compile Include="GeneClasses\Gene_AddRandomGeneAndOrTraitByWeight.cs" />
     <Compile Include="GeneClasses\Gene_ChanceToAddEachGene.cs" />
@@ -248,6 +249,7 @@
     <Compile Include="HarmonyPatches\HarmonyPatch_SpecificInheritableArchiteGenes.cs" />
     <Compile Include="GraphicComps\DefModExtension_ForcesBodyType.cs" />
     <Compile Include="HarmonyPatches\HarmonyPatch_StopDeterioation.cs" />
+    <Compile Include="HarmonyPatches\HarmonyPatch_TargetBodyPartsPatch.cs" />
     <Compile Include="HarmonyPatch_GetOffsetFromGearPatch.cs" />
     <Compile Include="HarmonyPatch_GetValueUnfinalizedFromVariousFactorPatch.cs" />
     <Compile Include="HarmonyPatch_PopulateMutableStatsWithStatsPatch.cs" />
