@@ -116,6 +116,7 @@ public class TextureFlag
     
     public bool shouldAddInsteadOfSwap = false;
     public bool hideThing = false;
+    public bool exclusive = false;
 
     [NoTranslate]
     public string hideTexPath = "Things/Armor/Imperium/PowerArmor/CommonIcons/BEWH_None";

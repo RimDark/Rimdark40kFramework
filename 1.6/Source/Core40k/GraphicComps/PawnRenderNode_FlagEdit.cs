@@ -30,14 +30,24 @@ public class PawnRenderNode_FlagEdit : PawnRenderNode_Apparel
 
     private string ModifyPathByFlags(List<TextureFlag> textureFlags, Pawn pawn)
     {
-        var path = string.Empty;
         if (textureFlags.NullOrEmpty())
         {
-            return path;
+            return string.Empty;
         }
+
+        var path = string.Empty;
         foreach (var flag in textureFlags)
         {
             var flagExpansion = ModifyByFlag(flag, pawn);
+            if (flagExpansion == string.Empty)
+            {
+                continue;
+            }
+
+            if (flag.exclusive)
+            {
+                return flagExpansion;
+            }
 
             path += flagExpansion;
         }
