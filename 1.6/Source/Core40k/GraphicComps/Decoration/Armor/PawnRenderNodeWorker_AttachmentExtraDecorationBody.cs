@@ -34,14 +34,14 @@ public class PawnRenderNodeWorker_AttachmentExtraDecorationBody : PawnRenderNode
         }
         else
         {
-            if (parms.posture is PawnPosture.LayingOnGroundNormal or PawnPosture.LayingOnGroundFaceUp)
-            {
-                return true;
-            }
-                
             if (!showWhenFacing.Contains(parms.facing))
             {
                 return false;
+            }
+
+            if (parms.posture is PawnPosture.LayingOnGroundNormal or PawnPosture.LayingOnGroundFaceUp)
+            {
+                return true;
             }
                 
             if (parms.posture == PawnPosture.Standing)

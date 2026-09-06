@@ -508,6 +508,11 @@ public class DecorationBaseTab : CustomizerTabDrawer
         
         foreach (var decoration in decorativeComp.Decorations)
         {
+            if (decoration.Key == null || !decoration.Key.showInDecorationTab)
+            {
+                continue;
+            }
+
             var presetPart = new DecorationPresetParts()
             {
                 extraDecorationDefs = decoration.Key.defName,

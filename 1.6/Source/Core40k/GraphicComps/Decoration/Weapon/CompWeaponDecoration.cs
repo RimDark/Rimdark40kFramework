@@ -376,13 +376,13 @@ public class CompWeaponDecoration : CompDecorativeBase
     }
 
     //Decoration changes
-    protected override void AddDecoration(DecorationDef decoration, DecorationSettings decorationSettings = null, bool setDefaultColors = false, bool free = false)
+    public override void AddDecoration(DecorationDef decoration, DecorationSettings decorationSettings = null, bool setDefaultColors = false, bool free = false)
     {
         base.AddDecoration(decoration, decorationSettings, setDefaultColors, free);
         InvalidateToolsAndVerbs();
     }
 
-    protected override bool RemoveDecoration(DecorationDef decoration)
+    public override bool RemoveDecoration(DecorationDef decoration)
     {
         if (!base.RemoveDecoration(decoration))
         {

@@ -98,7 +98,7 @@ public class CompDecorativeBase : CompGraphicParent
         Notify_GraphicChanged();
     }
 
-    protected virtual void AddDecoration(DecorationDef decoration, DecorationSettings decorationSettings = null, bool setDefaultColors = false, bool free = false)
+    public virtual void AddDecoration(DecorationDef decoration, DecorationSettings decorationSettings = null, bool setDefaultColors = false, bool free = false)
     {
         if (!decorations.ContainsKey(decoration))
         {
@@ -123,7 +123,7 @@ public class CompDecorativeBase : CompGraphicParent
     }
 
     //Remove
-    protected virtual bool RemoveDecoration(DecorationDef decoration)
+    public virtual bool RemoveDecoration(DecorationDef decoration)
     {
         if (!decorations.Remove(decoration))
         {
@@ -140,18 +140,21 @@ public class CompDecorativeBase : CompGraphicParent
     {
         foreach (var decoration in decorations.Keys.ToList())
         {
+            if (decoration == null || !decoration.showInDecorationTab)
+            {
+                continue;
+            }
+
             RemoveDecoration(decoration);
         }
 
-        decorations = new Dictionary<DecorationDef, DecorationSettings>();
-        drawDatas = new Dictionary<DecorationDef, DecorationDrawData>();
         OnDecorationsChanged();
         Notify_GraphicChanged();
     }
 
     public virtual void RemoveAllDecorations(bool upgrades)
     {
-        var toRemove = decorations.Keys.Where(def => def.IsUpgrade == upgrades).ToList();
+        var toRemove = decorations.Keys.Where(def => def != null && def.showInDecorationTab && def.IsUpgrade == upgrades).ToList();
         foreach (var decoration in toRemove)
         {
             RemoveDecoration(decoration);
@@ -225,6 +228,15 @@ public class CompDecorativeBase : CompGraphicParent
         decorations[decoration].maskDef = maskDef;
         Notify_GraphicChanged();
     }
+    public void SetDecorationFlipped(DecorationDef decoration, bool flipped)
+    {
+        if (!decorations.TryGetValue(decoration, out var settings) || settings.Flipped == flipped)
+        {
+            return;
+        }
+        settings.Flipped = flipped;
+        Notify_GraphicChanged();
+    }
     public void SetDecorationToParentColors(DecorationDef decoration)
     {
         decorations[decoration].Color = MultiColor.DrawColor;
@@ -272,7 +284,7 @@ public class CompDecorativeBase : CompGraphicParent
             var decoDef = Core40kUtils.GetDecoDefFromString(presetPart.extraDecorationDefs);
             //The preset can still name a decoration whose mod is gone. Skip it rather than
             //keying the dictionary with null.
-            if (decoDef == null || decorations.ContainsKey(decoDef))
+            if (decoDef == null || !decoDef.showInDecorationTab || decorations.ContainsKey(decoDef))
             {
                 continue;
             }

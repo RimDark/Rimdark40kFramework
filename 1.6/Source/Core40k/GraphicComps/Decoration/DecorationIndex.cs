@@ -178,7 +178,7 @@ public static class DecorationIndex
         var result = new List<DecorationDef>();
         foreach (var decoration in all)
         {
-            if (decoration.IsUpgrade == upgrades)
+            if (decoration.showInDecorationTab && decoration.IsUpgrade == upgrades)
             {
                 result.Add(decoration);
             }
@@ -190,7 +190,7 @@ public static class DecorationIndex
     {
         foreach (var decoration in DecorationsFor(thingDef))
         {
-            if (decoration.IsUpgrade == upgrades)
+            if (decoration.showInDecorationTab && decoration.IsUpgrade == upgrades)
             {
                 return true;
             }

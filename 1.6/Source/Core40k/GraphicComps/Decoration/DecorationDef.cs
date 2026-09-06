@@ -53,6 +53,10 @@ public class DecorationDef : Def
     public bool hasParentColourPaletteOption = false;
     
     public bool flipable = false;
+
+    //Placed and removed by a tab of its own, such as a mod's shoulder icon tab. The Decoration and
+    //Upgrades tabs neither list it nor touch it with Remove all or presets.
+    public bool showInDecorationTab = true;
     
     [Obsolete]
     public bool useMask = false;
