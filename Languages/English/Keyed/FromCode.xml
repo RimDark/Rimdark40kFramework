@@ -225,6 +225,7 @@
 
   <!-- Comp-->
   <BEWH.Framework.Comp.PawnDoesNotHaveRequiredGene>{0} does not have the {1} gene</BEWH.Framework.Comp.PawnDoesNotHaveRequiredGene>
+  <BEWH.Framework.Comp.CasterMissingRequiredRank>Requires rank: {0}</BEWH.Framework.Comp.CasterMissingRequiredRank>
 
   <BEWH.Framework.Comp.AbilityDisabledByCoveredPart>Cannot use {0}, due to covered {1} by {2}</BEWH.Framework.Comp.AbilityDisabledByCoveredPart>
 
