@@ -16,6 +16,8 @@ public class Core40kModSettings : ModSettings
 
     public bool notifyOnRankEligibility = true;
 
+    public bool notifyOnGeneVariantAvailability = true;
+
     public bool showAllRankCategories = false;
     
     public bool decorationWorkEnabled = true;
@@ -109,6 +111,7 @@ public class Core40kModSettings : ModSettings
         Scribe_Values.Look(ref decorationsPerRow, "decorationsPerRow", 6);
         Scribe_Values.Look(ref confirmRankUnlock, "confirmRankUnlock", false);
         Scribe_Values.Look(ref notifyOnRankEligibility, "notifyOnRankEligibility", true);
+        Scribe_Values.Look(ref notifyOnGeneVariantAvailability, "notifyOnGeneVariantAvailability", true);
         Scribe_Values.Look(ref showAllRankCategories, "showAllRankCategories", false);
         Scribe_Values.Look(ref decorationWorkEnabled, "decorationWorkEnabled", true);
         Scribe_Values.Look(ref decorationCostEnabled, "decorationCostEnabled", true);

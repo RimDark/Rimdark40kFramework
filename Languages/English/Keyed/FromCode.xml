@@ -19,6 +19,7 @@
   <BEWH.Framework.ModSettings.MinimumWork>Minimum work for any change: {0}</BEWH.Framework.ModSettings.MinimumWork>
   <BEWH.Framework.ModSettings.MinimumWorkTooltip>No visit to the station takes less work than this, however small the change.</BEWH.Framework.ModSettings.MinimumWorkTooltip>
   <BEWH.Framework.ModSettings.NotifyRankEligibility>Show a message when a pawn becomes eligible for a new rank</BEWH.Framework.ModSettings.NotifyRankEligibility>
+  <BEWH.Framework.ModSettings.NotifyGeneVariantAvailability>Show a message when a new gene variant becomes available to a pawn</BEWH.Framework.ModSettings.NotifyGeneVariantAvailability>
 
   <BEWH.ModSettings.TabMain>Main</BEWH.ModSettings.TabMain>
   <BEWH.ModSettings.TabCustomization>Customization</BEWH.ModSettings.TabCustomization>
@@ -47,6 +48,7 @@
   <BEWH.Framework.StatReport.Ammo>Loaded ammunition</BEWH.Framework.StatReport.Ammo>
   <BEWH.Framework.StatReport.Internal>Internal</BEWH.Framework.StatReport.Internal>
   <BEWH.Framework.StatReport.Total>Total</BEWH.Framework.StatReport.Total>
+  <BEWH.Framework.StatReport.GeneCustomization>Gene variants</BEWH.Framework.StatReport.GeneCustomization>
 
   <!--=== Customization ===-->
   <BEWH.Framework.Customization.PrimaryColor>Primary</BEWH.Framework.Customization.PrimaryColor>
@@ -126,6 +128,31 @@
   <BEWH.Framework.Customization.FittedUpgrades>Upgrades fitted</BEWH.Framework.Customization.FittedUpgrades>
   <BEWH.Framework.Customization.ConfirmCostOnly>Applying these changes will cost:\n{0}</BEWH.Framework.Customization.ConfirmCostOnly>
   <BEWH.Framework.Customization.ConfirmWork>Applying these changes will cost:\n{0}\n\nand take {1} work at the station.</BEWH.Framework.Customization.ConfirmWork>
+
+  <!--=== Gene Customization ===-->
+  <BEWH.Framework.GeneCustomization.Title>Gene customization: {0}</BEWH.Framework.GeneCustomization.Title>
+  <BEWH.Framework.GeneCustomization.GizmoLabel>Customize genes</BEWH.Framework.GeneCustomization.GizmoLabel>
+  <BEWH.Framework.GeneCustomization.GizmoDesc>Open the gene customization dialog for {0}. Customizable genes can be given a different look and different effects, and matching variants grant set bonuses.</BEWH.Framework.GeneCustomization.GizmoDesc>
+  <BEWH.Framework.GeneCustomization.NoSlots>No customizable genes.</BEWH.Framework.GeneCustomization.NoSlots>
+  <BEWH.Framework.GeneCustomization.SelectSlot>Select a gene on the left to see its variants.</BEWH.Framework.GeneCustomization.SelectSlot>
+  <BEWH.Framework.GeneCustomization.VariantsFor>Variants: {0}</BEWH.Framework.GeneCustomization.VariantsFor>
+  <BEWH.Framework.GeneCustomization.NoneTooltip>The unmodified gene. Removes any applied variant from this slot.</BEWH.Framework.GeneCustomization.NoneTooltip>
+  <BEWH.Framework.GeneCustomization.CurrentlyApplied>Currently applied.</BEWH.Framework.GeneCustomization.CurrentlyApplied>
+  <BEWH.Framework.GeneCustomization.GivesAbilities>Grants abilities:</BEWH.Framework.GeneCustomization.GivesAbilities>
+  <BEWH.Framework.GeneCustomization.GivesHediffs>Grants:</BEWH.Framework.GeneCustomization.GivesHediffs>
+  <BEWH.Framework.GeneCustomization.GrantsLine>Grants: {0}</BEWH.Framework.GeneCustomization.GrantsLine>
+  <BEWH.Framework.GeneCustomization.PartOfSets>Part of:</BEWH.Framework.GeneCustomization.PartOfSets>
+  <BEWH.Framework.GeneCustomization.SetBonuses>Set bonuses</BEWH.Framework.GeneCustomization.SetBonuses>
+  <BEWH.Framework.GeneCustomization.NoSets>No sets apply to this pawn's genes.</BEWH.Framework.GeneCustomization.NoSets>
+  <BEWH.Framework.GeneCustomization.SetMembers>Pieces:</BEWH.Framework.GeneCustomization.SetMembers>
+  <BEWH.Framework.GeneCustomization.TierPieces>{0} pieces</BEWH.Framework.GeneCustomization.TierPieces>
+  <BEWH.Framework.GeneCustomization.TierRequires>Requires {0} pieces of the set.</BEWH.Framework.GeneCustomization.TierRequires>
+  <BEWH.Framework.GeneCustomization.UseSkinColour>Use skin colour</BEWH.Framework.GeneCustomization.UseSkinColour>
+  <BEWH.Framework.GeneCustomization.UseHairColour>Use hair colour</BEWH.Framework.GeneCustomization.UseHairColour>
+  <BEWH.Framework.GeneCustomization.CannotPay>Cannot apply {0}: {1}</BEWH.Framework.GeneCustomization.CannotPay>
+  <BEWH.Framework.GeneCustomization.NotOnMap>Pawn must be on a map to pay this cost.</BEWH.Framework.GeneCustomization.NotOnMap>
+  <BEWH.Framework.GeneCustomization.VariantAvailable>{0} can now apply the gene variant {1}.</BEWH.Framework.GeneCustomization.VariantAvailable>
+  <BEWH.Framework.GeneCustomization.VariantsAvailable>{0} can now apply the gene variants {1}.</BEWH.Framework.GeneCustomization.VariantsAvailable>
 
   <!--=== Rank System ===-->
   <BEWH.Framework.RankSystem.RankTab>Ranks</BEWH.Framework.RankSystem.RankTab>

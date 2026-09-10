@@ -31,6 +31,8 @@ public static class Core40kDefOf
     public static DecorationTypeDef BEWH_UndefinedType;
     public static DecorationTypeDef BEWH_DecoCategory_Internal;
 
+    public static GeneSlotCategoryDef BEWH_GeneSlot_Undefined;
+
     public static StatDef BEWH_InternalUpgradeSlots;
     
     public static StatCategoryDef BEWH_Voidfaring;

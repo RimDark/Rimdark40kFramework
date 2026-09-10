@@ -194,6 +194,24 @@
     <Compile Include="GraphicComps\Decoration\CompProperties_DecorationBase.cs" />
     <Compile Include="GraphicComps\Decoration\DecorationBaseTab.cs" />
     <Compile Include="GraphicComps\Decoration\DecorationDef.cs" />
+    <Compile Include="DataStructs\RequirementUtility.cs" />
+    <Compile Include="GeneCustomization\CompGeneCustomization.cs" />
+    <Compile Include="GeneCustomization\CompProperties_GeneCustomization.cs" />
+    <Compile Include="GeneCustomization\DefModExtension_CustomizableGene.cs" />
+    <Compile Include="GeneCustomization\Dialog_GeneCustomization.cs" />
+    <Compile Include="GeneCustomization\DynamicPawnRenderNodeSetup_GeneVariants.cs" />
+    <Compile Include="GeneCustomization\GeneCustomizationTex.cs" />
+    <Compile Include="GeneCustomization\GeneSlotCategoryDef.cs" />
+    <Compile Include="GeneCustomization\GeneVariantAvailabilityNotifier.cs" />
+    <Compile Include="GeneCustomization\GeneVariantChoice.cs" />
+    <Compile Include="GeneCustomization\GeneVariantCost.cs" />
+    <Compile Include="GeneCustomization\GeneVariantDef.cs" />
+    <Compile Include="GeneCustomization\GeneVariantIndex.cs" />
+    <Compile Include="GeneCustomization\GeneVariantSetDef.cs" />
+    <Compile Include="GeneCustomization\GeneVariantStatUtility.cs" />
+    <Compile Include="GeneCustomization\HarmonyPatch_GeneTabVariantDescription.cs" />
+    <Compile Include="GeneCustomization\HarmonyPatch_SuppressCustomizedGeneGraphics.cs" />
+    <Compile Include="GeneCustomization\PawnRenderNode_GeneVariant.cs" />
     <Compile Include="GraphicComps\Decoration\DecorationDrawData.cs" />
     <Compile Include="GraphicComps\Decoration\DecorationPreset.cs" />
     <Compile Include="GraphicComps\Decoration\DecorationPresetDef.cs" />
@@ -308,6 +326,12 @@
     <Compile Include="Core40kMod.cs" />
     <Compile Include="Core40kDefOf.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Quest\QuestCompletionMode.cs" />
+    <Compile Include="Quest\PersistentQuestState.cs" />
+    <Compile Include="Quest\StorytellerCompProperties_PersistentQuest.cs" />
+    <Compile Include="Quest\StorytellerComp_PersistentQuest.cs" />
+    <Compile Include="Quest\GameComponent_PersistentQuests.cs" />
+    <Compile Include="Quest\DebugActions_PersistentQuest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\packages.config" />

@@ -30,6 +30,10 @@ public class ModSettingTab_CoreMain : ModSettingTab
         listingStandard.CheckboxLabeled("BEWH.Framework.ModSettings.NotifyRankEligibility".Translate(), ref core40KModSettings.notifyOnRankEligibility);
 
         scrollViewHeight += ListingHeightIncrease;
+
+        listingStandard.CheckboxLabeled("BEWH.Framework.ModSettings.NotifyGeneVariantAvailability".Translate(), ref core40KModSettings.notifyOnGeneVariantAvailability);
+
+        scrollViewHeight += ListingHeightIncrease;
         
         //Check VEF patches
         listingStandard.GapLine(36);

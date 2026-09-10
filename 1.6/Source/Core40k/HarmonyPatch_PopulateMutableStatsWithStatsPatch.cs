@@ -35,6 +35,33 @@ public class PopulateMutableStatsWithRankStatsPatch
             }
         }
         
+        foreach (var variantDef in DefDatabase<GeneVariantDef>.AllDefsListForReading)
+        {
+            if (variantDef.statFactors != null)
+            {
+                ___mutableStats.AddRange(variantDef.statFactors.Select(mod => mod.stat));
+            }
+            if (variantDef.statOffsets != null)
+            {
+                ___mutableStats.AddRange(variantDef.statOffsets.Select(mod => mod.stat));
+            }
+        }
+
+        foreach (var setDef in DefDatabase<GeneVariantSetDef>.AllDefsListForReading)
+        {
+            foreach (var tier in setDef.tiers)
+            {
+                if (tier.statFactors != null)
+                {
+                    ___mutableStats.AddRange(tier.statFactors.Select(mod => mod.stat));
+                }
+                if (tier.statOffsets != null)
+                {
+                    ___mutableStats.AddRange(tier.statOffsets.Select(mod => mod.stat));
+                }
+            }
+        }
+
         foreach (var thingDef in DefDatabase<ThingDef>.AllDefsListForReading)
         {
             var ammoChangerExtension = thingDef.GetModExtension<DefModExtension_AmmoChanger>();

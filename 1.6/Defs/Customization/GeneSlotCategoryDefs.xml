@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Defs>
+
+    <!-- Fallback category for slots that do not name one. Always drawn last. -->
+    <Core40k.GeneSlotCategoryDef>
+        <defName>BEWH_GeneSlot_Undefined</defName>
+        <label>Other</label>
+        <sortOrder>1000</sortOrder>
+    </Core40k.GeneSlotCategoryDef>
+
+    <Core40k.GeneSlotCategoryDef>
+        <defName>BEWH_GeneSlot_Head</defName>
+        <label>Head</label>
+        <sortOrder>0</sortOrder>
+    </Core40k.GeneSlotCategoryDef>
+
+    <Core40k.GeneSlotCategoryDef>
+        <defName>BEWH_GeneSlot_Body</defName>
+        <label>Body</label>
+        <sortOrder>10</sortOrder>
+    </Core40k.GeneSlotCategoryDef>
+
+</Defs>

@@ -73,6 +73,7 @@ public class DecorationDef : Def
     public List<GeneDef> mustHaveGene = null;
     public List<TraitData> mustHaveTrait = null;
     public List<HediffDef> mustHaveHediff = null;
+    public List<ResearchProjectDef> mustHaveResearch = null;
     
     public List<StatModifier> statOffsets = [];
     public List<StatModifier> statFactors = [];
@@ -166,190 +167,12 @@ public class DecorationDef : Def
     /// </summary>
     public virtual bool MeetsRequirements(Pawn pawn)
     {
-        if (pawn == null)
-        {
-            return mustHaveRank == null && mustHaveGene == null && mustHaveTrait == null && mustHaveHediff == null;
-        }
-
-        if (mustHaveRank != null)
-        {
-            var comp = pawn.GetComp<CompRankInfo>();
-            if (comp == null)
-            {
-                return false;
-            }
-            foreach (var rank in mustHaveRank)
-            {
-                if (!comp.HasRank(rank))
-                {
-                    return false;
-                }
-            }
-        }
-
-        if (mustHaveGene != null)
-        {
-            if (pawn.genes == null)
-            {
-                return false;
-            }
-            foreach (var gene in mustHaveGene)
-            {
-                if (!pawn.genes.HasActiveGene(gene))
-                {
-                    return false;
-                }
-            }
-        }
-
-        if (mustHaveTrait != null)
-        {
-            if (pawn.story?.traits == null)
-            {
-                return false;
-            }
-            foreach (var trait in mustHaveTrait)
-            {
-                if (!pawn.story.traits.HasTrait(trait.traitDef, trait.degree))
-                {
-                    return false;
-                }
-            }
-        }
-
-        if (mustHaveHediff != null)
-        {
-            if (pawn.health?.hediffSet == null)
-            {
-                return false;
-            }
-            foreach (var hediff in mustHaveHediff)
-            {
-                if (!pawn.health.hediffSet.HasHediff(hediff))
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return RequirementUtility.MeetsRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, mustHaveResearch);
     }
 
     public virtual bool HasRequirements(Pawn pawn, out string lockedReason)
     {
-        var reason = new StringBuilder();
-        var requirementFulfilled = true;
-
-        //Nothing to check against. Anything with a requirement is locked, anything without is free.
-        if (pawn == null)
-        {
-            lockedReason = string.Empty;
-            return mustHaveRank == null && mustHaveGene == null && mustHaveTrait == null && mustHaveHediff == null;
-        }
-
-        if (mustHaveRank != null)
-        {
-            var comp = pawn.GetComp<CompRankInfo>();
-            if (comp == null)
-            {
-                reason.AppendLine("BEWH.Framework.Customization.MissingRanks".Translate());
-                foreach (var rank in mustHaveRank)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(rank.label.CapitalizeFirst()));
-                }
-                lockedReason = reason.ToString();
-                return false;
-            }
-            var missingRanks = (from rank in mustHaveRank where !comp.HasRank(rank) select rank.label.CapitalizeFirst()).ToList();
-            if (missingRanks.Count > 0)
-            {
-                requirementFulfilled = false;
-                reason.AppendLine("BEWH.Framework.Customization.MissingRanks".Translate());
-                foreach (var rank in missingRanks)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(rank));
-                }
-            }
-        }
-    
-        if (mustHaveGene != null)
-        {
-            if (pawn.genes == null)
-            {
-                reason.AppendLine("BEWH.Framework.Customization.MissingGenes".Translate());
-                foreach (var gene in mustHaveGene)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(gene.label.CapitalizeFirst()));
-                }
-                lockedReason = reason.ToString();
-                return false;
-            }
-            
-            var missingGenes = (from gene in mustHaveGene where !pawn.genes.HasActiveGene(gene) select gene.label.CapitalizeFirst()).ToList();
-            if (missingGenes.Count > 0)
-            {
-                requirementFulfilled = false;
-                reason.AppendLine("BEWH.Framework.Customization.MissingGenes".Translate());
-                foreach (var gene in missingGenes)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(gene));
-                }
-            }
-        }
-
-        if (mustHaveTrait != null)
-        {
-            if (pawn.story?.traits == null)
-            {
-                reason.AppendLine("BEWH.Framework.Customization.MissingTraits".Translate());
-                foreach (var trait in mustHaveTrait)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(trait.traitDef.label.CapitalizeFirst()));
-                }
-                lockedReason = reason.ToString();
-                return false;
-            }
-            
-            var missingTraits = (from trait in mustHaveTrait where !pawn.story.traits.HasTrait(trait.traitDef, trait.degree) select trait.traitDef.label.CapitalizeFirst()).ToList();
-            if (missingTraits.Count > 0)
-            {
-                requirementFulfilled = false;
-                reason.AppendLine("BEWH.Framework.Customization.MissingTraits".Translate());
-                foreach (var trait in missingTraits)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(trait));
-                }
-            }
-        }
-
-        if (mustHaveHediff != null)
-        {
-            if (pawn.health?.hediffSet == null)
-            {
-                reason.AppendLine("BEWH.Framework.Customization.MissingHediffs".Translate());
-                foreach (var hediff in mustHaveHediff)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(hediff.label.CapitalizeFirst()));
-                }
-                lockedReason = reason.ToString();
-                return false;
-            }
-            
-            
-            var missingHediffs = (from hediff in mustHaveHediff where !pawn.health.hediffSet.HasHediff(hediff) select hediff.label.CapitalizeFirst()).ToList();
-            if (missingHediffs.Count > 0)
-            {
-                requirementFulfilled = false;
-                reason.AppendLine("BEWH.Framework.Customization.MissingHediffs".Translate());
-                foreach (var hediff in missingHediffs)
-                {
-                    reason.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(hediff));
-                }
-            }
-        }
-            
-        lockedReason = reason.ToString();
-        return requirementFulfilled;
+        return RequirementUtility.HasRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, mustHaveResearch, out lockedReason);
     }
     
     public override IEnumerable<string> ConfigErrors()

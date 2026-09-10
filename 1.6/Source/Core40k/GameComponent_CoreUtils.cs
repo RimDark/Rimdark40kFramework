@@ -17,25 +17,43 @@ public class GameComponent_CoreUtils : GameComponent
     private List<Thing> gizmoToggleThings;
     private List<bool> gizmoToggleValues;
     
+    private bool geneVariantBaselineDone;
+
     public GameComponent_CoreUtils(Game game)
     {
+    }
+
+    public override void GameComponentTick()
+    {
+        base.GameComponentTick();
+        GeneVariantAvailabilityNotifier.Tick();
     }
 
     public override void LoadedGame()
     {
         base.LoadedGame();
         VoidfaringUtility.ClearCache();
+
+        if (geneVariantBaselineDone)
+        {
+            return;
+        }
+
+        GeneVariantAvailabilityNotifier.SeedBaseline();
+        geneVariantBaselineDone = true;
     }
 
     public override void StartedNewGame()
     {
         base.StartedNewGame();
         VoidfaringUtility.ClearCache();
+        geneVariantBaselineDone = true;
     }
 
     public override void ExposeData()
     {
         base.ExposeData();
+        Scribe_Values.Look(ref geneVariantBaselineDone, "geneVariantBaselineDone", false);
 
         if (Scribe.mode == LoadSaveMode.Saving)
         {
