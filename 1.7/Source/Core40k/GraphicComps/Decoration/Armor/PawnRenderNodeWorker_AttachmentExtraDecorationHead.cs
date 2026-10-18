@@ -19,7 +19,12 @@ public class PawnRenderNodeWorker_AttachmentExtraDecorationHead : PawnRenderNode
             return false;
         }
             
-        if (!PawnRenderNodeWorker_Apparel_Head.HeadgearVisible(parms))
+        if (!HostApparelVisible(pawnRenderNode, parms, out var hostFound))
+        {
+            return false;
+        }
+
+        if (!hostFound && !PawnRenderNodeWorker_Apparel_Head.HeadgearVisible(parms))
         {
             return false;
         }

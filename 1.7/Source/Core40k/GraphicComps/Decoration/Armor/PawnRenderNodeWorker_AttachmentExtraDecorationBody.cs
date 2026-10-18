@@ -18,6 +18,11 @@ public class PawnRenderNodeWorker_AttachmentExtraDecorationBody : PawnRenderNode
         {
             return false;
         }
+
+        if (!HostApparelVisible(pawnRenderNode, parms, out _))
+        {
+            return false;
+        }
             
         var showWhenFacing = extraDecoration.ShowRotation(node.Props.flipGraphic);
         if (parms.Portrait)
