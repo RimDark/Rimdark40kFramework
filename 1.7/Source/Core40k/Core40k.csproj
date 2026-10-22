@@ -15,8 +15,8 @@
     <Nullable>disable</Nullable>
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <RimWorldDir>..\..\..\..\..\</RimWorldDir>
-    <WorkshopDir>..\..\..\..\..\..\..\workshop\content\294100\</WorkshopDir>
+    <!-- Relative default assumes the mod sits in RimWorld\Mods; a Directory.Build.props above the repo can override it -->
+    <WorkshopDir Condition="'$(WorkshopDir)' == ''">..\..\..\..\..\..\..\workshop\content\294100\</WorkshopDir>
     <VefDir>$(WorkshopDir)2023507013\1.7\Assemblies\</VefDir>
   </PropertyGroup>
 
@@ -26,33 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(RimWorldDir)Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityStubs">
-      <HintPath>$(RimWorldDir)UnityStubs.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Waylith">
-      <HintPath>$(RimWorldDir)Waylith.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Waylith.UnityCompat">
-      <HintPath>$(RimWorldDir)Waylith.UnityCompat.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Waylith.AssetBake">
-      <HintPath>$(RimWorldDir)Waylith.AssetBake.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="$(RimWorldDir)Brutal.*.dll">
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="0Harmony">
-      <HintPath>$(WorkshopDir)2009463077\1.7\Assemblies\0Harmony.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="VEF">
       <HintPath>$(VefDir)VEF.dll</HintPath>
       <Private>False</Private>
@@ -60,6 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Krafs.Rimworld.Ref must match the game build in RimWorld\Version.txt (1.7.4985 rev1269 → 1.7.4985-unstable);
+         Lib.Harmony.Ref must match the Workshop Harmony 1.7 build -->
+    <PackageReference Include="Krafs.Rimworld.Ref" Version="1.7.4985-unstable" />
+    <PackageReference Include="Lib.Harmony.Ref" Version="3.0.0-rc.3" />
     <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
