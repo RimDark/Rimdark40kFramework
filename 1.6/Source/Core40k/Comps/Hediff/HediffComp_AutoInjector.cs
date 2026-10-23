@@ -47,7 +47,7 @@ public class HediffComp_AutoInjector : HediffComp
             return false;
         }
 
-        if (Props.triggerOnDowned && Pawn.Downed)
+        if (Props.triggerOnDowned && Pawn.Downed && !(Props.ignoreDownedWhileAnesthetized && Pawn.health.hediffSet.HasHediff(HediffDefOf.Anesthetic)))
         {
             return true;
         }

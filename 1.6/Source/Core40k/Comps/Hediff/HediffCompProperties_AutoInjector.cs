@@ -8,6 +8,8 @@ public class HediffCompProperties_AutoInjector : HediffCompProperties
 
     public bool triggerOnDowned = true;
 
+    public bool ignoreDownedWhileAnesthetized = true;
+
     //Blood loss severity that sets the injector off on a pawn still on its feet. Negative disables it.
     public float triggerOnBloodLoss = 0.6f;
 

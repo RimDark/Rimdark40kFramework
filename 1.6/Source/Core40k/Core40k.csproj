@@ -76,6 +76,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Abilities\CompAbilityEffect_HideIfHasAbility.cs" />
+    <Compile Include="Abilities\CompProperties_AbilityHideIfHasAbility.cs" />
+    <Compile Include="GraphicComps\DefModExtension_HidesHead.cs" />
+    <Compile Include="GraphicComps\HarmonyPatch_AlternateFormRenderSkipFlags.cs" />
+    <Compile Include="GraphicComps\HarmonyPatch_HideHeadPatch.cs" />
+    <Compile Include="Repair\DefModExtension_RepairRecipe.cs" />
+    <Compile Include="Repair\EquipmentRepairUtility.cs" />
+    <Compile Include="Repair\HarmonyPatch_RepairIngredients.cs" />
+    <Compile Include="Repair\HarmonyPatch_RepairProducts.cs" />
+    <Compile Include="Repair\HarmonyPatch_RepairWorkAmount.cs" />
+    <Compile Include="Repair\RecipeWorker_RepairEquipment.cs" />
     <Compile Include="Artifact\ArtifactBearerRecord.cs" />
     <Compile Include="Artifact\ArtifactCondition.cs" />
     <Compile Include="Artifact\ArtifactKillRecord.cs" />

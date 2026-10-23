@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using RimWorld;
 using UnityEngine;
 
 namespace Core40k;
@@ -12,4 +13,6 @@ public class AlternateBaseFormDef : DecorationDef
     public Color? newTertiaryColor;
 
     public Vector2? newDrawSize;
+
+    public List<RenderSkipFlagDef> renderSkipFlags;
 }

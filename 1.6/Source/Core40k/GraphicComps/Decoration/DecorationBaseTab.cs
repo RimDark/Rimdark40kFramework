@@ -414,7 +414,8 @@ public class DecorationBaseTab : CustomizerTabDrawer
     {
         var drawDataText = drawData.GetDataForXml();
                 
-        var toClipboard = $"<weaponSpecificDrawData><li><key>{selectedPrecisionDef.defName}</key><value>{drawDataText}</value></li></weaponSpecificDrawData>";
+        var fieldName = selectedPrecisionComp.parent is Apparel ? "apparelSpecificDrawData" : "weaponSpecificDrawData";
+        var toClipboard = $"<!-- {selectedPrecisionDef.defName} --><{fieldName}><li><key>{selectedPrecisionComp.parent.def.defName}</key><value>{drawDataText}</value></li></{fieldName}>";
                 
         GUIUtility.systemCopyBuffer = toClipboard;
         Messages.Message("Copied draw data to clipboard.", MessageTypeDefOf.TaskCompletion, false);

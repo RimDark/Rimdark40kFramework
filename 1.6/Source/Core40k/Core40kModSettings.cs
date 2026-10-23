@@ -31,6 +31,10 @@ public class Core40kModSettings : ModSettings
     public float appearanceChangeWorkAmount = 200f;
 
     public float minimumWorkAmount = 50f;
+
+    public const float DefaultRepairCostFactor = 0.5f;
+
+    public float repairCostFactor = DefaultRepairCostFactor;
         
     private List<ColourPreset> colourPresets = [];
     public List<ColourPreset> ColourPresets => colourPresets;
@@ -121,6 +125,7 @@ public class Core40kModSettings : ModSettings
         Scribe_Values.Look(ref alwaysShowShields, "alwaysShowShields", false);
         Scribe_Values.Look(ref appearanceChangeWorkAmount, "appearanceChangeWorkAmount", 200f);
         Scribe_Values.Look(ref minimumWorkAmount, "minimumWorkAmount", 50f);
+        Scribe_Values.Look(ref repairCostFactor, "repairCostFactor", DefaultRepairCostFactor);
         Scribe_Collections.Look(ref colourPresets, "colourPresets");
         Scribe_Collections.Look(ref extraDecorationPresets, "extraDecorationPresets");
 

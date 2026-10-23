@@ -45,6 +45,19 @@ public class ExtraDecorationDef : DecorationDef
     
     public List<BodyTypeDef> appliesToBodyTypes = [];
 
+    //Extra offset, layer and scale per host apparel defName, added on top of drawData the same way
+    //the per-item precision data is. The precision tab's Debug copy exports an entry for this.
+    public Dictionary<string, DecorationDrawData> apparelSpecificDrawData = [];
+
+    public DecorationDrawData ApparelSpecificDrawDataFor(ThingDef apparelDef)
+    {
+        if (apparelDef == null || apparelSpecificDrawData == null || apparelSpecificDrawData.Count == 0)
+        {
+            return null;
+        }
+        return apparelSpecificDrawData.TryGetValue(apparelDef.defName, out var data) ? data : null;
+    }
+
     public override bool MeetsPawnRequirements(Pawn pawn)
     {
         if (!base.MeetsPawnRequirements(pawn))

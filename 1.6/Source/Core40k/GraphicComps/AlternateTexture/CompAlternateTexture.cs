@@ -39,20 +39,75 @@ public class CompAlternateTexture : CompGraphicParent
             }
         }
 
-        if (currentAlternateBaseForm != null)
-        {
-            //Remove stuff from old alternate
-            Pawn.RemoveAbilities(currentAlternateBaseForm.givesAbilities, currentAlternateBaseForm.givesVFEAbilities);
-        }
-        
-        currentAlternateBaseForm = alternateBaseFormDef;
-        
-        if (currentAlternateBaseForm != null)
-        {
-            Pawn.AddAbilities(currentAlternateBaseForm.givesAbilities, currentAlternateBaseForm.givesVFEAbilities);
-        }
+        SwapCurrentAlternateBaseForm(alternateBaseFormDef);
         
         Notify_GraphicChanged();
+    }
+
+    /// <summary>
+    /// Changes the current alternate form, moving the abilities and hediffs it grants from the old form to the new one.
+    /// </summary>
+    private void SwapCurrentAlternateBaseForm(AlternateBaseFormDef alternateBaseFormDef)
+    {
+        if (currentAlternateBaseForm == alternateBaseFormDef)
+        {
+            return;
+        }
+
+        var pawn = Pawn;
+        RemoveGrants(pawn, currentAlternateBaseForm);
+        currentAlternateBaseForm = alternateBaseFormDef;
+        AddGrants(pawn, currentAlternateBaseForm);
+    }
+
+    /// <summary>
+    /// Gives the pawn the abilities and hediffs of an alternate form.
+    /// </summary>
+    private static void AddGrants(Pawn pawn, AlternateBaseFormDef alternateBaseFormDef)
+    {
+        if (pawn == null || alternateBaseFormDef == null)
+        {
+            return;
+        }
+
+        pawn.AddAbilities(alternateBaseFormDef.givesAbilities, alternateBaseFormDef.givesVFEAbilities);
+
+        if (alternateBaseFormDef.givesHediffs.NullOrEmpty() || pawn.health == null)
+        {
+            return;
+        }
+
+        foreach (var hediffDef in alternateBaseFormDef.givesHediffs)
+        {
+            pawn.health.AddHediff(hediffDef);
+        }
+    }
+
+    /// <summary>
+    /// Takes away the abilities and hediffs an alternate form gave the pawn.
+    /// </summary>
+    private static void RemoveGrants(Pawn pawn, AlternateBaseFormDef alternateBaseFormDef)
+    {
+        if (pawn == null || alternateBaseFormDef == null)
+        {
+            return;
+        }
+
+        pawn.RemoveAbilities(alternateBaseFormDef.givesAbilities, alternateBaseFormDef.givesVFEAbilities);
+
+        if (alternateBaseFormDef.givesHediffs.NullOrEmpty() || pawn.health?.hediffSet == null)
+        {
+            return;
+        }
+
+        foreach (var hediffDef in alternateBaseFormDef.givesHediffs)
+        {
+            var hediff = pawn.health.hediffSet.GetFirstHediffOfDef(hediffDef);
+            if (hediff != null)
+            {
+                pawn.health.RemoveHediff(hediff);
+            }
+        }
     }
     
     
@@ -144,6 +199,7 @@ public class CompAlternateTexture : CompGraphicParent
     
     public override void Notify_Equipped(Pawn pawn)
     {
+        AddGrants(pawn, currentAlternateBaseForm);
         TryAddCachedStat(pawn);
 
         Notify_GraphicChanged();
@@ -152,6 +208,8 @@ public class CompAlternateTexture : CompGraphicParent
     
     public override void Notify_Unequipped(Pawn pawn)
     {
+        RemoveGrants(pawn, currentAlternateBaseForm);
+
         if (pawn != null && CoreUtils != null && CoreUtils.cachedAlternateTexture.TryGetValue(pawn, out var alternateTexture))
         {
             alternateTexture.Remove(this);
@@ -193,7 +251,7 @@ public class CompAlternateTexture : CompGraphicParent
     }
     public override void Reset()
     {
-        currentAlternateBaseForm = originalCurrentAlternateBaseForm;
+        SwapCurrentAlternateBaseForm(originalCurrentAlternateBaseForm);
         Notify_GraphicChanged();
     }
     
@@ -228,7 +286,7 @@ public class CompAlternateTexture : CompGraphicParent
             return;
         }
 
-        currentAlternateBaseForm = pendingAlternateBaseForm;
+        SwapCurrentAlternateBaseForm(pendingAlternateBaseForm);
         pendingAlternateBaseForm = null;
         hasPendingChange = false;
 

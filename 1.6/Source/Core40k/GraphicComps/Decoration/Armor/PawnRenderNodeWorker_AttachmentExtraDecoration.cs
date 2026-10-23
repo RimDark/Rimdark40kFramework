@@ -5,6 +5,48 @@ namespace Core40k;
 
 public class PawnRenderNodeWorker_AttachmentExtraDecoration : PawnRenderNodeWorker
 {
+    /// <summary>
+    /// False when the apparel this decoration belongs to has render nodes and none of them would draw right now, so hidden helmets and armour hide their decorations too.
+    /// </summary>
+    protected static bool HostApparelVisible(PawnRenderNode_AttachmentExtraDecoration node, PawnDrawParms parms, out bool hostFound)
+    {
+        var hosts = node.HostApparelNodes;
+        hostFound = !hosts.NullOrEmpty();
+        if (!hostFound)
+        {
+            return true;
+        }
+
+        foreach (var host in hosts)
+        {
+            if (HostNodeDraws(host, parms))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HostNodeDraws(PawnRenderNode host, PawnDrawParms parms)
+    {
+        var worker = host.Worker;
+        if (worker == null || !worker.CanDrawNow(host, parms))
+        {
+            return false;
+        }
+
+        foreach (var subWorker in host.Props.SubWorkers)
+        {
+            if (!subWorker.CanDrawNowSub(host, parms))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public override Vector3 OffsetFor(PawnRenderNode node, PawnDrawParms parms, out Vector3 pivot)
     {
         var offset = base.OffsetFor(node, parms, out pivot);
