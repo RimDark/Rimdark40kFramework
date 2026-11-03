@@ -79,6 +79,8 @@
     <Compile Include="Abilities\CompAbilityEffect_HideIfHasAbility.cs" />
     <Compile Include="Abilities\CompProperties_AbilityHideIfHasAbility.cs" />
     <Compile Include="GraphicComps\DefModExtension_HidesHead.cs" />
+    <Compile Include="GraphicComps\DefModExtension_IgnoreStuffColor.cs" />
+    <Compile Include="GraphicComps\DefModExtension_FixedGenerationStuff.cs" />
     <Compile Include="GraphicComps\HarmonyPatch_AlternateFormRenderSkipFlags.cs" />
     <Compile Include="GraphicComps\HarmonyPatch_HideHeadPatch.cs" />
     <Compile Include="Repair\DefModExtension_RepairRecipe.cs" />
@@ -180,6 +182,7 @@
     <Compile Include="Core40kModSettings.cs" />
     <Compile Include="Core40kUtils.cs" />
     <Compile Include="DamageWorkers\DamageWorker_Holy.cs" />
+    <Compile Include="DataStructs\CachedGraphicRenderInfo.cs" />
     <Compile Include="DataStructs\HediffData.cs" />
     <Compile Include="DataStructs\NamedExtraDamage.cs" />
     <Compile Include="DataStructs\PresetData.cs" />
@@ -224,6 +227,11 @@
     <Compile Include="GraphicComps\CustomizerShared\DefModExtension_AvailableDrawerTabDefs.cs" />
     <Compile Include="GraphicComps\CustomizerShared\Dialog_CustomizeApparel.cs" />
     <Compile Include="GraphicComps\CustomizerShared\Dialog_CustomizeWeapon.cs" />
+    <Compile Include="GraphicComps\CustomizerShared\Dialog_CustomizePawnBody.cs" />
+    <Compile Include="GraphicComps\MultiColor\Pawn\CompMultiColorPawn.cs" />
+    <Compile Include="GraphicComps\MultiColor\Pawn\CompProperties_MultiColorPawn.cs" />
+    <Compile Include="GraphicComps\MultiColor\Pawn\HarmonyPatch_PawnBodyMultiColor.cs" />
+    <Compile Include="GraphicComps\MultiColor\Pawn\PawnBodyColoringTab.cs" />
     <Compile Include="GraphicComps\CustomizerShared\HarmonyPatch_CustomizerOnThing.cs" />
     <Compile Include="GraphicComps\CustomizerShared\MaskDef.cs" />
     <Compile Include="GraphicComps\Decoration\Armor\ArmorDecorationDef.cs" />
@@ -326,6 +334,7 @@
     <Compile Include="HarmonyPatches\HarmonyPatch_ArtificialPartsAffinityPatch.cs" />
     <Compile Include="HarmonyPatches\HarmonyPatch_BeheadingCutWorkerCutPatch.cs" />
     <Compile Include="HarmonyPatches\HarmonyPatch_BeheadingCutWorkerNormalPatch.cs" />
+    <Compile Include="HarmonyPatches\HarmonyPatch_BillStuffFilterFix.cs" />
     <Compile Include="HarmonyPatches\HarmonyPatch_CriticalHitPatch.cs" />
     <Compile Include="HarmonyPatches\HarmonyPatch_DontPlaceProductPatch.cs" />
     <Compile Include="HarmonyPatches\HarmonyPatch_ExclusiveApparelCanEquipPatch.cs" />

@@ -32,24 +32,14 @@ public static class RelevantGearUtility
             }
         }
 
-        if (gear is not ThingWithComps thingWithComps || thingWithComps.AllComps == null)
+        if (!DecorationIndex.AffectsWielderStatOffset(stat) || !Core40kUtils.DefHasComp<CompArtifactWeapon>(gear.def)
+            || gear is not ThingWithComps thingWithComps)
         {
             return false;
         }
 
-        foreach (var comp in thingWithComps.AllComps)
-        {
-            if (comp is CompGraphicParent graphicComp && !Waylith.Math.Mathf.Approximately(graphicComp.GetStatOffset(stat), 0f))
-            {
-                return true;
-            }
-            if (comp is CompArtifactWeapon artifact && !Waylith.Math.Mathf.Approximately(artifact.GetWielderStatOffset(stat), 0f))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        var artifact = thingWithComps.GetComp<CompArtifactWeapon>();
+        return artifact != null && !Waylith.Math.Mathf.Approximately(artifact.GetWielderStatOffset(stat), 0f);
     }
 }
 
@@ -135,7 +125,7 @@ public static class GearExplanationIncludesCompsPatch
 
         if (patched == 0)
         {
-            Log.Warning("[Core40k] Could not widen StatWorker.GetOffsetsAndFactorsExplanation to comp-sourced apparel offsets; the character card will not list apparel whose stat offsets come from decorations or upgrades. Everything else is unaffected.");
+            Log.Warning("[Core40k] Could not widen StatWorker.GetOffsetsAndFactorsExplanation to comp-sourced apparel offsets; the character card will not list artifact wielder stat offsets. Everything else is unaffected.");
         }
 
         return codeInstructions;

@@ -94,6 +94,14 @@ public class ArtifactKindDef : Def
             yield return "workerClass " + workerClass + " does not derive from ArtifactKindWorker";
         }
 
+        if (wielderRequirements != null)
+        {
+            foreach (var error in wielderRequirements.ConfigErrors(this, nameof(wielderRequirements)))
+            {
+                yield return error;
+            }
+        }
+
         if (stages.NullOrEmpty())
         {
             yield return "no stages - an artifact kind needs at least stage 0";

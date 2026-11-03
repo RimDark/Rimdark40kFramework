@@ -15,7 +15,8 @@ public class ThingWithCompsMultiColorGraphicOverride
         }
 
         var def = weapon.def;
-        var mayHaveMultiColor = Core40kUtils.DefHasComp<CompMultiColor>(def);
+        //Pawns (CompMultiColorPawn) are painted through their body render node, not Thing.Graphic.
+        var mayHaveMultiColor = def.race == null && Core40kUtils.DefHasComp<CompMultiColor>(def);
         var mayHaveAlternateTexture = Core40kUtils.DefHasComp<CompAlternateTexture>(def);
         if (!mayHaveMultiColor && !mayHaveAlternateTexture)
         {

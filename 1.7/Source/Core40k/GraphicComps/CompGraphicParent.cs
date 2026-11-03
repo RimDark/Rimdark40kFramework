@@ -77,6 +77,7 @@ public class CompGraphicParent : ThingComp, IPawnStatSource
         cachedStatFactor = new Dictionary<StatDef, float>();
         cachedPawnStatOffset = new Dictionary<StatDef, float>();
         cachedPawnStatFactor = new Dictionary<StatDef, float>();
+        parent.GetComp<Comp_ConversionField>()?.Notify_FieldSourceChanged();
         parent.Notify_ColorChanged();
         OutfitStandDecorationRenderer.Notify_ItemGraphicChanged(parent);
     }

@@ -13,14 +13,8 @@ public class PopulateMutableStatsWithRankStatsPatch
     {
         foreach (var rankDef in DefDatabase<RankDef>.AllDefsListForReading)
         {
-            if (rankDef.statFactors != null)
-            {
-                ___mutableStats.AddRange(rankDef.statFactors.Select(mod => mod.stat));
-            }
-            if (rankDef.statOffsets != null)
-            {
-                ___mutableStats.AddRange(rankDef.statOffsets.Select(mod => mod.stat));
-            }
+            ___mutableStats.AddRange(rankDef.AllStatFactors.Select(mod => mod.stat));
+            ___mutableStats.AddRange(rankDef.AllStatOffsets.Select(mod => mod.stat));
         }
         
         foreach (var decorationDef in DefDatabase<DecorationDef>.AllDefsListForReading)

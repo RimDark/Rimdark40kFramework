@@ -71,7 +71,15 @@ public class ArtifactCondition_WielderRequirements : ArtifactCondition
 
     public override string Description(CompArtifactWeapon comp)
     {
-        return "BEWH.Framework.Artifact.Condition.Wielder".Translate();
+        var description = "BEWH.Framework.Artifact.Condition.Wielder".Translate().ToString();
+        if (RequirementData.IsNullOrEmpty(requirements))
+        {
+            return description;
+        }
+
+        //What the current wielder still lacks, line by line.
+        requirements.Has(comp.Wielder, out var report);
+        return description + ":\n" + report;
     }
 }
 

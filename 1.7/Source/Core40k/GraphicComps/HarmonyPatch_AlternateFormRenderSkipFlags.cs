@@ -38,20 +38,13 @@ public static class AlternateFormRenderSkipFlagsPatch
             return;
         }
 
-        var wornApparel = pawn.apparel.WornApparel;
-        var anyOverride = false;
-        for (var i = 0; i < wornApparel.Count; i++)
-        {
-            if (FormSkipFlags(wornApparel[i]) != null)
-            {
-                anyOverride = true;
-                break;
-            }
-        }
-        if (!anyOverride)
+        //Cached per pawn: almost nobody wears an alternate form with skip flags, so this is usually the end.
+        if (!WornApparelRenderCache.For(pawn).anyFormSkipFlags)
         {
             return;
         }
+
+        var wornApparel = pawn.apparel.WornApparel;
 
         var vanillaFlags = ApparelSkipFlags(wornApparel, parms.facing, __state, false);
         var formFlags = ApparelSkipFlags(wornApparel, parms.facing, __state, true);

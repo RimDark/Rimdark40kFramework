@@ -31,16 +31,19 @@ public class ExtraDecorationDef : DecorationDef
             return flippedShowRotation;
         }
 
-        flippedShowRotation = [];
+        //Render recache runs on several threads: fill a local list and publish it in one assignment,
+        //so no thread sees a half-filled list.
+        var flippedRotations = new List<Rot4>();
         if (defaultShowRotation != null)
         {
             foreach (var rotation in defaultShowRotation)
             {
-                flippedShowRotation.Add(rotation.Opposite);
+                flippedRotations.Add(rotation.Opposite);
             }
         }
 
-        return flippedShowRotation;
+        flippedShowRotation = flippedRotations;
+        return flippedRotations;
     }
     
     public List<BodyTypeDef> appliesToBodyTypes = [];
@@ -49,75 +52,54 @@ public class ExtraDecorationDef : DecorationDef
     //the per-item precision data is. The precision tab's Debug copy exports an entry for this.
     public Dictionary<string, DecorationDrawData> apparelSpecificDrawData = [];
 
+    //apparelSpecificDrawData keyed by the apparel def itself, built in ResolveReferences. This is read three
+    //times a frame per decoration node, so it avoids hashing the defName string each time.
+    [Unsaved]
+    private Dictionary<ThingDef, DecorationDrawData> apparelSpecificDrawDataByDef;
+
     public DecorationDrawData ApparelSpecificDrawDataFor(ThingDef apparelDef)
     {
         if (apparelDef == null || apparelSpecificDrawData == null || apparelSpecificDrawData.Count == 0)
         {
             return null;
         }
+
+        if (apparelSpecificDrawDataByDef != null)
+        {
+            return apparelSpecificDrawDataByDef.TryGetValue(apparelDef, out var byDef) ? byDef : null;
+        }
+
         return apparelSpecificDrawData.TryGetValue(apparelDef.defName, out var data) ? data : null;
     }
 
-    public override bool MeetsPawnRequirements(Pawn pawn)
+    public override void ResolveReferences()
     {
-        if (!base.MeetsPawnRequirements(pawn))
+        base.ResolveReferences();
+
+        if (apparelSpecificDrawData.NullOrEmpty())
         {
-            return false;
-        }
-        if (appliesToBodyTypes.NullOrEmpty() || pawn?.apparel == null)
-        {
-            return true;
+            return;
         }
 
-        Apparel bodyApparel = null;
-        var wornApparel = pawn.apparel.WornApparel;
-        for (var i = 0; i < wornApparel.Count; i++)
+        var byDef = new Dictionary<ThingDef, DecorationDrawData>();
+        foreach (var entry in apparelSpecificDrawData)
         {
-            if (wornApparel[i].HasComp<CompDecorative>())
+            //Entries for apparel from mods that aren't loaded are skipped, as before.
+            var apparelDef = DefDatabase<ThingDef>.GetNamedSilentFail(entry.Key);
+            if (apparelDef != null)
             {
-                bodyApparel = wornApparel[i];
-                break;
+                byDef[apparelDef] = entry.Value;
             }
         }
-        if (bodyApparel == null)
-        {
-            return true;
-        }
 
-        var pawnBodyType = BodyTypeUtils.SafeBodyType(
-            pawn, bodyApparel.def?.GetModExtension<DefModExtension_ForcesBodyType>()?.forcedBodyType);
-        return BodyTypeUtils.MatchesAny(pawnBodyType, appliesToBodyTypes, out _);
+        apparelSpecificDrawDataByDef = byDef;
     }
 
-    public override bool HasRequirements(Pawn pawn, out string lockedReason)
+    protected override void AddBuiltInRequirements(List<PawnRequirement> list)
     {
-        var requirementFulfilled = base.HasRequirements(pawn, out lockedReason);
-        if (appliesToBodyTypes.NullOrEmpty())
+        if (!appliesToBodyTypes.NullOrEmpty())
         {
-            return requirementFulfilled;
+            list.Add(new PawnRequirement_BodyType { bodyTypes = appliesToBodyTypes });
         }
-        if (pawn?.apparel == null)
-        {
-            return requirementFulfilled;
-        }
-        var bodyApparel = pawn.apparel.WornApparel.FirstOrFallback(a => a.HasComp<CompDecorative>());
-        if (bodyApparel == null)
-        {
-            return requirementFulfilled;
-        }
-        
-        var reason = new StringBuilder();
-        reason.AppendLine(lockedReason);
-        
-        var pawnBodyType = BodyTypeUtils.SafeBodyType(
-            pawn, bodyApparel.def?.GetModExtension<DefModExtension_ForcesBodyType>()?.forcedBodyType);
-        if (!BodyTypeUtils.MatchesAny(pawnBodyType, appliesToBodyTypes, out _))
-        {
-            reason.AppendLine("BEWH.Framework.Customization.InvalidBodytype".Translate());
-            lockedReason = reason.ToString();
-            requirementFulfilled = false;
-        }
-        
-        return requirementFulfilled;
     }
 }

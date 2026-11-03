@@ -62,6 +62,11 @@ public class ITab_Artifact : ITab
         if (!comp.WielderMeetsRequirements)
         {
             listing.Label("BEWH.Framework.Artifact.WielderUnworthy".Translate().Colorize(ColorLibrary.RedReadable));
+            if (!RequirementData.IsNullOrEmpty(comp.Kind.wielderRequirements))
+            {
+                comp.Kind.wielderRequirements.Has(comp.Wielder, out var unworthyReport);
+                listing.Label(unworthyReport);
+            }
         }
         listing.GapLine();
 

@@ -89,9 +89,7 @@ public class ColoringBaseTab : CustomizerTabDrawer
                 masks.Add(multiColor.parent.def, masksForItem);
             }
 
-            var item = multiColor.parent;
-            
-            defaultColors.Add(item.def, (multiColor?.Props?.defaultPrimaryColor ?? (item.def.MadeFromStuff ? item.def.GetColorForStuff(item.Stuff) : Color.white), multiColor?.Props?.defaultSecondaryColor ?? Color.white, multiColor?.Props?.defaultTertiaryColor ?? Color.white));
+            defaultColors.Add(multiColor.parent.def, DefaultColorsFor(multiColor));
             
             apparelColorMaskPageNumber.Add(multiColor.parent.def, 0);
         }
@@ -363,37 +361,7 @@ public class ColoringBaseTab : CustomizerTabDrawer
                         {
                             cachedMaterials = new Dictionary<(ThingDef, MaskDef), Material>();
                         }
-                        var bodyType = BodyTypeUtils.SafeBodyType(
-                            pawn, item.def.GetModExtension<DefModExtension_ForcesBodyType>()?.forcedBodyType);
-                        var gender = pawn?.gender ?? Gender.None;
-                        
-                        var alternatePath = alternateTexture?.CurrentAlternateBaseForm?.drawnTextureIconPath;
-
-                        var usedPath = string.Empty;
-                        
-                        if (item is Apparel apparel)
-                        {
-                            usedPath = alternatePath.NullOrEmpty() ? apparel.WornGraphicPath : alternatePath;
-                        
-                            usedPath = apparel.def.apparel.LastLayer != ApparelLayerDefOf.Overhead
-                                       && apparel.def.apparel.LastLayer != ApparelLayerDefOf.EyeCover
-                                       && !apparel.RenderAsPack()
-                                       && usedPath != BaseContent.PlaceholderImagePath
-                                       && usedPath != BaseContent.PlaceholderGearImagePath
-                                ? BodyTypeUtils.BodyTypedPath(usedPath, bodyType, gender) : usedPath;
-                        }
-                        else
-                        {
-                            usedPath = alternatePath.NullOrEmpty() ? item.def.graphicData.texPath : alternatePath;
-                        }
-                        
-                        var shader = Core40kDefOf.BEWH_CutoutThreeColor.Shader;
-                        var maskPath = curPageMasks[i]?.maskPath;
-                        if (curPageMasks[i] != null && curPageMasks[i].useBodyTypes)
-                        {
-                            maskPath = BodyTypeUtils.BodyTypedMaskPath(maskPath, bodyType, gender);
-                        }
-                        var graphic = MultiColorUtils.GetGraphic<Graphic_Multi>(usedPath, shader, item.def.graphicData.drawSize, multiColor.DrawColor, multiColor.DrawColorTwo, multiColor.DrawColorThree, null, maskPath);
+                        var graphic = MaskPreviewGraphic(multiColor, curPageMasks[i], pawn);
                         var material = graphic?.MatSouth ?? BaseContent.BadMat;
                         cachedMaterials.Add((item.def, curPageMasks[i]), material);
                         recache = false;
@@ -463,6 +431,55 @@ public class ColoringBaseTab : CustomizerTabDrawer
         Widgets.EndScrollView();
     }
     
+    /// <summary>
+    /// The graphic shown on a mask button: the item in its current colours with that mask applied.
+    /// </summary>
+    protected virtual Graphic MaskPreviewGraphic(CompMultiColor multiColor, MaskDef mask, Pawn pawn)
+    {
+        var item = multiColor.parent;
+        var alternateTexture = AlternateTextureOf(multiColor);
+        var bodyType = BodyTypeUtils.SafeBodyType(
+            pawn, item.def.GetModExtension<DefModExtension_ForcesBodyType>()?.forcedBodyType);
+        var gender = pawn?.gender ?? Gender.None;
+
+        var alternatePath = alternateTexture?.CurrentAlternateBaseForm?.drawnTextureIconPath;
+
+        var usedPath = string.Empty;
+
+        if (item is Apparel apparel)
+        {
+            usedPath = alternatePath.NullOrEmpty() ? apparel.WornGraphicPath : alternatePath;
+
+            usedPath = apparel.def.apparel.LastLayer != ApparelLayerDefOf.Overhead
+                       && apparel.def.apparel.LastLayer != ApparelLayerDefOf.EyeCover
+                       && !apparel.RenderAsPack()
+                       && usedPath != BaseContent.PlaceholderImagePath
+                       && usedPath != BaseContent.PlaceholderGearImagePath
+                ? BodyTypeUtils.BodyTypedPath(usedPath, bodyType, gender) : usedPath;
+        }
+        else
+        {
+            usedPath = alternatePath.NullOrEmpty() ? item.def.graphicData.texPath : alternatePath;
+        }
+
+        var shader = Core40kDefOf.BEWH_CutoutThreeColor.Shader;
+        var maskPath = mask?.maskPath;
+        if (mask != null && mask.useBodyTypes)
+        {
+            maskPath = BodyTypeUtils.BodyTypedMaskPath(maskPath, bodyType, gender);
+        }
+        return MultiColorUtils.GetGraphic<Graphic_Multi>(usedPath, shader, item.def.graphicData.drawSize, multiColor.DrawColor, multiColor.DrawColorTwo, multiColor.DrawColorThree, null, maskPath);
+    }
+
+    /// <summary>
+    /// The colours the "Default" preset restores.
+    /// </summary>
+    protected virtual (Color col1, Color col2, Color col3) DefaultColorsFor(CompMultiColor multiColor)
+    {
+        var item = multiColor.parent;
+        return (multiColor.Props?.defaultPrimaryColor ?? (item.def.MadeFromStuff ? item.def.GetColorForStuff(item.Stuff) : Color.white), multiColor.Props?.defaultSecondaryColor ?? Color.white, multiColor.Props?.defaultTertiaryColor ?? Color.white);
+    }
+
     private void DecoColorBox(Rect colorRect, CompMultiColor multiColor, Color currentColor, int colorNum)
     {
         colorRect = colorRect.ContractedBy(2f);

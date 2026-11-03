@@ -19,18 +19,59 @@ public class DefModExtension_CustomizableGene : DefModExtension
 
     public List<RankDef> mustHaveRank = null;
     public List<GeneDef> mustHaveGene = null;
+    public List<GeneDef> mustHaveGeneOneAmong = null;
     public List<TraitData> mustHaveTrait = null;
     public List<HediffDef> mustHaveHediff = null;
     public List<ResearchProjectDef> mustHaveResearch = null;
 
+    //Extra requirements, checked after the ones built from the mustHave fields above.
+    public List<PawnRequirement> requirements = [];
+
+    [Unsaved]
+    private List<PawnRequirement> allRequirements;
+
+    /// <summary>
+    /// Every requirement to use this slot: the ones built from the mustHave fields, then &lt;requirements&gt;.
+    /// </summary>
+    public List<PawnRequirement> AllRequirements => allRequirements ??= BuildRequirementList();
+
+    private List<PawnRequirement> BuildRequirementList()
+    {
+        var list = new List<PawnRequirement>();
+        RequirementUtility.AddLegacy(list, mustHaveRank, mustHaveGene, mustHaveGeneOneAmong, mustHaveTrait, mustHaveHediff, mustHaveResearch);
+        RequirementUtility.AddListed(list, requirements);
+        return list;
+    }
+
     public bool MeetsRequirements(Pawn pawn)
     {
-        return RequirementUtility.MeetsRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, mustHaveResearch);
+        return RequirementUtility.AllMet(AllRequirements, new RequirementContext(pawn));
     }
 
     public bool HasRequirements(Pawn pawn, out string lockedReason)
     {
-        return RequirementUtility.HasRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, mustHaveResearch, out lockedReason);
+        return RequirementUtility.Report(AllRequirements, new RequirementContext(pawn), out lockedReason);
+    }
+
+    public override IEnumerable<string> ConfigErrors()
+    {
+        foreach (var error in base.ConfigErrors())
+        {
+            yield return error;
+        }
+
+        if (requirements == null)
+        {
+            yield break;
+        }
+
+        foreach (var requirement in requirements)
+        {
+            if (requirement == null)
+            {
+                yield return "DefModExtension_CustomizableGene has an empty entry in requirements.";
+            }
+        }
     }
 
     public override void ResolveReferences(Def parentDef)

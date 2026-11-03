@@ -31,7 +31,7 @@ public class RecreationFromSkill
             var result = false;
             foreach (var rank in DefDatabase<RankDef>.AllDefsListForReading)
             {
-                if (!rank.recreationFromSkills.NullOrEmpty())
+                if (rank.AllRecreationSkills.Count > 0)
                 {
                     result = true;
                     break;

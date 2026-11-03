@@ -60,6 +60,8 @@
   <BEWH.Framework.Customization.SecondaryColor>Secondary</BEWH.Framework.Customization.SecondaryColor>
   <BEWH.Framework.Customization.TertiaryColor>Tertiary</BEWH.Framework.Customization.TertiaryColor>
   <BEWH.Framework.Customization.ChooseCustomColour>Click to select custom color</BEWH.Framework.Customization.ChooseCustomColour>
+  <BEWH.Framework.Customization.PaintPawn>paint</BEWH.Framework.Customization.PaintPawn>
+  <BEWH.Framework.Customization.PaintPawnDesc>Change {PAWN_labelShort}'s colors and pattern. Free and instant.</BEWH.Framework.Customization.PaintPawnDesc>
 
   <BEWH.Framework.Customization.UseParentColor>Use Parent Colors</BEWH.Framework.Customization.UseParentColor>
   <BEWH.Framework.Customization.SetDefaultColor>Set Default Colors</BEWH.Framework.Customization.SetDefaultColor>
@@ -138,6 +140,8 @@
   <BEWH.Framework.Customization.GrantsCount>{0} granted</BEWH.Framework.Customization.GrantsCount>
   <BEWH.Framework.Customization.GrantsDesc>Abilities and conditions given to the wearer or wielder while the item is equipped.</BEWH.Framework.Customization.GrantsDesc>
   <BEWH.Framework.Customization.OtherEffects>Other effects</BEWH.Framework.Customization.OtherEffects>
+  <BEWH.Framework.Customization.ItemStats>Item stats</BEWH.Framework.Customization.ItemStats>
+  <BEWH.Framework.Customization.WearerStats>Wearer stats</BEWH.Framework.Customization.WearerStats>
   <BEWH.Framework.Customization.OtherEffectsCount>{0} effects</BEWH.Framework.Customization.OtherEffectsCount>
   <BEWH.Framework.Customization.AdditionalLayers>Additional layers</BEWH.Framework.Customization.AdditionalLayers>
   <BEWH.Framework.Customization.AdditionalLayersDesc>Apparel layers this item also occupies because of its fitted decorations. Apparel on these layers covering the same body parts cannot be worn with it.</BEWH.Framework.Customization.AdditionalLayersDesc>
@@ -206,10 +210,18 @@
   <BEWH.Framework.RankSystem.EligibleForRanks>{0} is now eligible for new ranks: {1}.</BEWH.Framework.RankSystem.EligibleForRanks>
 
   <BEWH.Framework.RankSystem.UnlockRank>Unlock rank</BEWH.Framework.RankSystem.UnlockRank>
+  <BEWH.Framework.RankSystem.TreeControlsHint>Drag to move, scroll to zoom, double-click to reset</BEWH.Framework.RankSystem.TreeControlsHint>
+  <BEWH.Framework.RankSystem.BridgeAlsoIn>Also in {0}, where the tree continues</BEWH.Framework.RankSystem.BridgeAlsoIn>
+  <BEWH.Framework.RankSystem.BridgeReachedFrom>Also in {0}, which leads here</BEWH.Framework.RankSystem.BridgeReachedFrom>
+  <BEWH.Framework.RankSystem.BridgeContinuesIn>In {0}, this rank leads to:</BEWH.Framework.RankSystem.BridgeContinuesIn>
+  <BEWH.Framework.RankSystem.BridgeLeadsFrom>In {0}, this rank comes after:</BEWH.Framework.RankSystem.BridgeLeadsFrom>
+  <BEWH.Framework.RankSystem.BridgeClickHint>Click to open {0}.</BEWH.Framework.RankSystem.BridgeClickHint>
+  <BEWH.Framework.RankSystem.BridgeCategoryLocked>{0} is locked for this pawn.</BEWH.Framework.RankSystem.BridgeCategoryLocked>
+  <BEWH.Framework.RankSystem.BridgeMore>+{0} more</BEWH.Framework.RankSystem.BridgeMore>
   <BEWH.Framework.RankSystem.Stats>Stats</BEWH.Framework.RankSystem.Stats>
   <BEWH.Framework.RankSystem.Abilities>Abilities</BEWH.Framework.RankSystem.Abilities>
   <BEWH.Framework.RankSystem.Hediffs>Hediffs</BEWH.Framework.RankSystem.Hediffs>
-  <BEWH.Framework.RankSystem.OtherEffects>Other Effects</BEWH.Framework.RankSystem.OtherEffects>
+  <BEWH.Framework.RankSystem.OtherEffects>Other effects</BEWH.Framework.RankSystem.OtherEffects>
   <BEWH.Framework.RankSystem.RecreationFromSkill>Recreation from skills</BEWH.Framework.RankSystem.RecreationFromSkill>
   <BEWH.Framework.RankSystem.PassionMod>Passions</BEWH.Framework.RankSystem.PassionMod>
   <BEWH.Framework.RankSystem.PassionModAddOne> - increase by one</BEWH.Framework.RankSystem.PassionModAddOne>
@@ -232,6 +244,13 @@
 
   <BEWH.Framework.RankSystem.RequirementsHediffAll>All of the following hediffs</BEWH.Framework.RankSystem.RequirementsHediffAll>
   <BEWH.Framework.RankSystem.RequirementsHediffAtLeastOne>At least one of the following hediffs</BEWH.Framework.RankSystem.RequirementsHediffAtLeastOne>
+  <BEWH.Framework.Requirements.SkillsAtLeastOne>At least one of the following skills</BEWH.Framework.Requirements.SkillsAtLeastOne>
+  <BEWH.Framework.Requirements.ResearchAll>All of the following research</BEWH.Framework.Requirements.ResearchAll>
+  <BEWH.Framework.Requirements.ResearchAtLeastOne>At least one of the following research</BEWH.Framework.Requirements.ResearchAtLeastOne>
+  <BEWH.Framework.Requirements.AtLeastCount>At least {0} of the following</BEWH.Framework.Requirements.AtLeastCount>
+  <BEWH.Framework.Requirements.SkillsSum>Combined level of the following skills</BEWH.Framework.Requirements.SkillsSum>
+  <BEWH.Framework.Requirements.SkillsSumTotal>Total: {0} (needs {1})</BEWH.Framework.Requirements.SkillsSumTotal>
+  <BEWH.Framework.Requirements.BodyTypeAtLeastOne>One of the following body types</BEWH.Framework.Requirements.BodyTypeAtLeastOne>
 
   <BEWH.Framework.RankSystem.RequirementsAge>Biological age</BEWH.Framework.RankSystem.RequirementsAge>
   <BEWH.Framework.RankSystem.MinimumBiologicalAge>Minimum: {0} years</BEWH.Framework.RankSystem.MinimumBiologicalAge>

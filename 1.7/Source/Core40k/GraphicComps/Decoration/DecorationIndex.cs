@@ -19,6 +19,7 @@ public static class DecorationIndex
     private static Dictionary<DecorationDef, List<MaskDef>> masksByDecoration;
     private static Dictionary<ThingDef, List<MaskDef>> masksByThing;
     private static HashSet<StatDef> pawnStatRelevant;
+    private static HashSet<StatDef> wielderOffsetRelevant;
     private static bool built;
 
     private static readonly List<DecorationDef> EmptyDecorations = [];
@@ -40,6 +41,7 @@ public static class DecorationIndex
         masksByDecoration = new Dictionary<DecorationDef, List<MaskDef>>();
         masksByThing = new Dictionary<ThingDef, List<MaskDef>>();
         pawnStatRelevant = new HashSet<StatDef>();
+        wielderOffsetRelevant = new HashSet<StatDef>();
 
         //Only things that can actually carry a decoration are considered, so an appliesToAll
         //decoration does not attach itself to every ThingDef in the game.
@@ -116,21 +118,23 @@ public static class DecorationIndex
         foreach (var trait in DefDatabase<ArtifactTraitDef>.AllDefsListForReading)
         {
             AddStats(trait.wielderStatFactors);
+            AddStats(trait.wielderStatOffsets, wielderOffsetRelevant);
         }
     }
 
-    private static void AddStats(List<StatModifier> modifiers)
+    private static void AddStats(List<StatModifier> modifiers, HashSet<StatDef> into = null)
     {
         if (modifiers.NullOrEmpty())
         {
             return;
         }
 
+        into ??= pawnStatRelevant;
         foreach (var modifier in modifiers)
         {
             if (modifier?.stat != null)
             {
-                pawnStatRelevant.Add(modifier.stat);
+                into.Add(modifier.stat);
             }
         }
     }
@@ -199,6 +203,15 @@ public static class DecorationIndex
     public static bool AffectsPawnStat(StatDef stat)
     {
         return built && stat != null && pawnStatRelevant.Count != 0 && pawnStatRelevant.Contains(stat);
+    }
+
+    /// <summary>
+    /// Whether any loaded ArtifactTraitDef has a wielderStatOffsets entry for this stat. Lets the
+    /// StatOffsetFromGear postfix skip stats no artifact can offset.
+    /// </summary>
+    public static bool AffectsWielderStatOffset(StatDef stat)
+    {
+        return built && stat != null && wielderOffsetRelevant.Count != 0 && wielderOffsetRelevant.Contains(stat);
     }
 
     public static List<DecorationDef> DecorationsFor(ThingDef thingDef)

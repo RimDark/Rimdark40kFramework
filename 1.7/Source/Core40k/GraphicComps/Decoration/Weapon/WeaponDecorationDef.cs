@@ -91,22 +91,19 @@ public class WeaponDecorationDef : DecorationDef
         }
     }
 
-    public override string TooltipDescription()
+    public override void DescribeEffects(EffectReport report)
     {
-        var stringBuilder = new StringBuilder(base.TooltipDescription());
+        base.DescribeEffects(report);
 
         if (tools.NullOrEmpty())
         {
-            return stringBuilder.ToString();
+            return;
         }
 
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine("BEWH.Framework.Customization.AddedMeleeAttacks".Translate());
+        var header = "BEWH.Framework.Customization.AddedMeleeAttacks".Translate();
         foreach (var tool in tools)
         {
-            stringBuilder.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(WeaponDecorationVerbUtility.ToolSummary(tool)));
+            report.Line(header, WeaponDecorationVerbUtility.ToolSummary(tool));
         }
-
-        return stringBuilder.ToString();
     }
 }

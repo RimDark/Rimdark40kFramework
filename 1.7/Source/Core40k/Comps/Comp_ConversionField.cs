@@ -23,7 +23,35 @@ public class Comp_ConversionField : CompShield
 
     private CompProperties_ConversionField FieldProps => props as CompProperties_ConversionField;
 
-    private bool FieldActive => HasFieldSource && parent.GetStatValue(StatDefOf.EnergyShieldEnergyMax) > 0f;
+    //FieldActive is read every tick on every item with this comp, worn or stored, so the result is cached.
+    //Fitting or removing a decoration resets it (Notify_FieldSourceChanged); anything else that moves
+    //EnergyShieldEnergyMax is picked up within FieldCheckIntervalTicks.
+    private const int FieldCheckIntervalTicks = 250;
+    private bool fieldActiveCached;
+    private int fieldActiveCheckedTick = -1;
+
+    private bool FieldActive
+    {
+        get
+        {
+            var tick = Find.TickManager?.TicksGame ?? 0;
+            if (fieldActiveCheckedTick < 0 || tick < fieldActiveCheckedTick || tick - fieldActiveCheckedTick >= FieldCheckIntervalTicks)
+            {
+                fieldActiveCached = HasFieldSource && parent.GetStatValue(StatDefOf.EnergyShieldEnergyMax) > 0f;
+                fieldActiveCheckedTick = tick;
+            }
+
+            return fieldActiveCached;
+        }
+    }
+
+    /// <summary>
+    /// Makes the next FieldActive check recompute. Called when the item's decorations change.
+    /// </summary>
+    public void Notify_FieldSourceChanged()
+    {
+        fieldActiveCheckedTick = -1;
+    }
 
     /// <summary>
     /// True only while a fitted decoration is what supplies the field. EnergyShieldEnergyMax has no

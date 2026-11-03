@@ -48,7 +48,11 @@ public static class RestoreMultiColorAfterRescalePatch
         }
 
         var apparel = node.apparel;
-        if (apparel == null)
+        //A painted pawn body (CompMultiColorPawn) gets the same treatment as painted apparel.
+        var bodyMultiColor = apparel == null && node is PawnRenderNode_AnimalPart && Core40kUtils.DefHasComp<CompMultiColorPawn>(node.tree?.pawn?.def)
+            ? node.tree.pawn.GetComp<CompMultiColorPawn>()
+            : null;
+        if (apparel == null && bodyMultiColor == null)
         {
             return;
         }
@@ -60,8 +64,14 @@ public static class RestoreMultiColorAfterRescalePatch
             return;
         }
 
-        var multiColor = apparel.GetComp<CompMultiColor>();
-        var alternateTexture = apparel.GetComp<CompAlternateTexture>();
+        //Rotting and dessicated bodies stay vanilla.
+        if (bodyMultiColor != null && current.Shader != Core40kDefOf.BEWH_CutoutThreeColor.Shader)
+        {
+            return;
+        }
+
+        var multiColor = bodyMultiColor ?? apparel.GetComp<CompMultiColor>();
+        var alternateTexture = apparel?.GetComp<CompAlternateTexture>();
         if (multiColor == null && alternateTexture == null)
         {
             return;

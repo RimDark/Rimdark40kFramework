@@ -117,12 +117,12 @@ public class CompRankInfo : ThingComp
             cachedRecreationSkills = [];
             foreach (var rank in UnlockedRanks)
             {
-                if (rank?.recreationFromSkills == null)
+                if (rank == null)
                 {
                     continue;
                 }
 
-                foreach (var skill in rank.recreationFromSkills)
+                foreach (var skill in rank.AllRecreationSkills)
                 {
                     cachedRecreationSkills.Add(skill);
                 }
@@ -273,6 +273,12 @@ public class CompRankInfo : ThingComp
 
     public void RemoveRank(RankDef rank, bool removeFromRankLimit)
     {
+        //A rank the pawn never held has nothing to take back (removeRanksOnUnlock lists ranks the pawn may not have).
+        if (!HasRank(rank))
+        {
+            return;
+        }
+
         UnlockedRanks.Remove(rank);
         daysAsRank.Remove(rank);
             
@@ -306,7 +312,7 @@ public class CompRankInfo : ThingComp
             var skill = ParentPawn.skills.GetSkill(originalPassion.Key);
             skill.passion = originalPassion.Value;
         }
-        var passionMods = unlockedRanks.SelectMany(def => def.givesPassions);
+        var passionMods = UnlockedRanks.SelectMany(def => def.AllPassions);
         var skillDefPassionCol = new Dictionary<SkillDef, List<PassionMod.PassionModType>>();
         foreach (var passionMod in passionMods)
         {
@@ -533,10 +539,7 @@ public class CompRankInfo : ThingComp
         {
             foreach (var rank in UnlockedRanks)
             {
-                if (!rank.statOffsets.NullOrEmpty())
-                {
-                    num += rank.statOffsets.GetStatOffsetFromList(stat);
-                }
+                num += rank.StatOffsetFor(stat);
             }
 
             if (devotion != null)
@@ -569,10 +572,7 @@ public class CompRankInfo : ThingComp
         {
             foreach (var rank in UnlockedRanks)
             {
-                if (!rank.statFactors.NullOrEmpty())
-                {
-                    num *= rank.statFactors.GetStatFactorFromList(stat);
-                }
+                num *= rank.StatFactorFor(stat);
             }
                     
             if (devotion != null)
@@ -604,12 +604,12 @@ public class CompRankInfo : ThingComp
         
         foreach (var rank in UnlockedRanks)
         {
-            var statOffsetFromList = rank.statOffsets.GetStatOffsetFromList(stat);
+            var statOffsetFromList = rank.StatOffsetFor(stat);
             if (!Waylith.Math.Mathf.Approximately(statOffsetFromList, 0f))
             {
                 stringBuilder.AppendLine(whitespace + "    " + rank.LabelCap + ": " + stat.Worker.ValueToString(statOffsetFromList, finalized: false, ToStringNumberSense.Offset));
             }
-            var statFactorFromList = rank.statFactors.GetStatFactorFromList(stat);
+            var statFactorFromList = rank.StatFactorFor(stat);
             if (!Waylith.Math.Mathf.Approximately(statFactorFromList, 1f))
             {
                 stringBuilder.AppendLine(whitespace + "    " + rank.LabelCap + ": " + stat.Worker.ValueToString(statFactorFromList, finalized: false, ToStringNumberSense.Factor));

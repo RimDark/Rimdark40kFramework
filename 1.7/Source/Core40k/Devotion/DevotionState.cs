@@ -330,6 +330,16 @@ public class DevotionState : IExposable
             ? "BEWH.Framework.Devotion.TierLetterText".Translate(pawn.LabelShortCap, tier.LabelCap, creed.LabelCap)
             : tier.letterText.Formatted(pawn.LabelShortCap, tier.LabelCap, creed.LabelCap);
 
+        //Extra effects describe themselves below the letter text.
+        foreach (var effect in tier.extraEffects)
+        {
+            var explanation = effect?.ExplanationFor(creed, tier);
+            if (!explanation.NullOrEmpty())
+            {
+                text += "\n\n" + explanation;
+            }
+        }
+
         Find.LetterStack.ReceiveLetter(label, text, tier.letterOnReach, pawn);
     }
 

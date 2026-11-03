@@ -75,6 +75,9 @@ public class DecorationDef : Def
     public List<TraitData> mustHaveTrait = null;
     public List<HediffDef> mustHaveHediff = null;
     public List<ResearchProjectDef> mustHaveResearch = null;
+
+    //Extra requirements, checked after the ones built from the mustHave fields above.
+    public List<PawnRequirement> requirements = [];
     
     //Offsets and factors on the item's own stats, applied by vanilla through ThingComp.GetStatOffset.
     public List<StatModifier> statOffsets = [];
@@ -164,59 +167,33 @@ public class DecorationDef : Def
         }
     }
 
+    /// <summary>
+    /// Writes what the decoration does into report: item and wearer stats, grants and other effects. Override to add lines of your own (call base).
+    /// </summary>
+    public virtual void DescribeEffects(EffectReport report)
+    {
+        report.Stats(statOffsets, statFactors, "BEWH.Framework.Customization.ItemStats".Translate());
+        report.Stats(pawnStatOffsets, pawnStatFactors, "BEWH.Framework.Customization.WearerStats".Translate());
+        //Under "Grants", like the info card and the fitted report.
+        report.Defs("BEWH.Framework.Customization.Grants".Translate(), GrantedDefs());
+
+        if (!customEffectDescriptions.NullOrEmpty())
+        {
+            foreach (var customEffect in customEffectDescriptions)
+            {
+                report.Line(EffectReport.OtherEffectsHeader, customEffect?.CapitalizeFirst());
+            }
+        }
+    }
+
     public virtual string TooltipDescription()
     {
         var stringbuilder = new StringBuilder();
         stringbuilder.AppendLine(label);
 
-        if (!statOffsets.NullOrEmpty() || !pawnStatOffsets.NullOrEmpty())
-        {
-            stringbuilder.AppendLine();
-            stringbuilder.AppendLine("BEWH.Framework.CommonKeyword.StatOffset".Translate());
-            foreach (var statOffset in statOffsets)
-            {
-                stringbuilder.AppendLine(statOffset.stat.label.CapitalizeFirst() + ": " + statOffset.ValueToStringAsOffset);
-            }
-            foreach (var statOffset in pawnStatOffsets)
-            {
-                stringbuilder.AppendLine(statOffset.stat.label.CapitalizeFirst() + ": " + statOffset.ValueToStringAsOffset);
-            }
-        }
-        
-        if (!statFactors.NullOrEmpty() || !pawnStatFactors.NullOrEmpty())
-        {
-            stringbuilder.AppendLine();
-            stringbuilder.AppendLine("BEWH.Framework.CommonKeyword.StatFactor".Translate());
-            foreach (var statFactor in statFactors)
-            {
-                stringbuilder.AppendLine(statFactor.stat.label.CapitalizeFirst() + ": " + statFactor.ToStringAsFactor);
-            }
-            foreach (var statFactor in pawnStatFactors)
-            {
-                stringbuilder.AppendLine(statFactor.stat.label.CapitalizeFirst() + ": " + statFactor.ToStringAsFactor);
-            }
-        }
-
-        var granted = GrantedDefs().ToList();
-        if (granted.Count != 0)
-        {
-            stringbuilder.AppendLine();
-            stringbuilder.AppendLine("BEWH.Framework.Customization.Grants".Translate());
-            foreach (var grantedDef in granted)
-            {
-                stringbuilder.AppendLine(grantedDef.LabelCap);
-            }
-        }
-
-        if (!customEffectDescriptions.NullOrEmpty())
-        {
-            stringbuilder.AppendLine();
-            stringbuilder.AppendLine("BEWH.Framework.Customization.OtherEffects".Translate());
-            foreach (var customEffect in customEffectDescriptions)
-            {
-                stringbuilder.AppendLine(customEffect.CapitalizeFirst());
-            }
-        }
+        var report = new EffectReport();
+        DescribeEffects(report);
+        report.AppendTo(stringbuilder);
 
         if (HasCost && DecorationWorkUtility.CostEnabled)
         {
@@ -273,13 +250,38 @@ public class DecorationDef : Def
         }
     }
 
+    [Unsaved]
+    private List<PawnRequirement> allRequirements;
+
     /// <summary>
-    /// Rank, gene, trait and hediff requirements only, without building the reason text. Used to validate
-    /// fitted decorations on equip; research is left out as it only gates fitting a decoration.
+    /// Every requirement of this decoration: the ones built from the mustHave fields (and, on armour decorations,
+    /// appliesToBodyTypes), then &lt;requirements&gt;.
+    /// </summary>
+    public List<PawnRequirement> AllRequirements => allRequirements ??= BuildRequirementList();
+
+    private List<PawnRequirement> BuildRequirementList()
+    {
+        var list = new List<PawnRequirement>();
+        RequirementUtility.AddLegacy(list, mustHaveRank, mustHaveGene, mustHaveGeneOneAmong, mustHaveTrait, mustHaveHediff, mustHaveResearch);
+        AddBuiltInRequirements(list);
+        RequirementUtility.AddListed(list, requirements);
+        return list;
+    }
+
+    /// <summary>
+    /// For subclasses whose own fields turn into requirements; they are checked after the mustHave ones.
+    /// </summary>
+    protected virtual void AddBuiltInRequirements(List<PawnRequirement> list)
+    {
+    }
+
+    /// <summary>
+    /// The requirements that look at the pawn, without building the reason text. Used to validate fitted
+    /// decorations on equip; research is left out as it only gates fitting a decoration.
     /// </summary>
     public virtual bool MeetsPawnRequirements(Pawn pawn)
     {
-        return RequirementUtility.MeetsRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, null, mustHaveGeneOneAmong);
+        return RequirementUtility.AllMet(AllRequirements, new RequirementContext(pawn), pawnOnly: true);
     }
 
     /// <summary>
@@ -287,22 +289,25 @@ public class DecorationDef : Def
     /// </summary>
     public virtual bool MeetsRequirements(Pawn pawn)
     {
-        return ResearchFinished && MeetsPawnRequirements(pawn);
-    }
-
-    public virtual bool HasRequirements(Pawn pawn, out string lockedReason)
-    {
-        var requirementFulfilled = RequirementUtility.HasRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, null, out lockedReason, mustHaveGeneOneAmong);
-        if (ResearchFinished)
+        //Research first, then MeetsPawnRequirements so subclass overrides of it still count.
+        RequirementContext context = null;
+        foreach (var requirement in AllRequirements)
         {
-            return requirementFulfilled;
+            if (!requirement.DependsOnPawn && !requirement.IsMet(context ??= new RequirementContext(pawn)))
+            {
+                return false;
+            }
         }
 
-        var missingResearch = mustHaveResearch.Where(project => project != null && !project.IsFinished).Select(project => project.label.CapitalizeFirst());
-        var reason = new StringBuilder(lockedReason);
-        reason.AppendLine("BEWH.Framework.Common.MissingResearch".Translate(missingResearch.ToCommaList()));
-        lockedReason = reason.ToString();
-        return false;
+        return MeetsPawnRequirements(pawn);
+    }
+
+    /// <summary>
+    /// Every requirement, with the text shown in the customization tooltips.
+    /// </summary>
+    public virtual bool HasRequirements(Pawn pawn, out string lockedReason)
+    {
+        return RequirementUtility.Report(AllRequirements, new RequirementContext(pawn), out lockedReason);
     }
 
     public override IEnumerable<StatDrawEntry> SpecialDisplayStats(StatRequest req)
@@ -486,6 +491,11 @@ public class DecorationDef : Def
         if (extraApparelLayers != null && extraApparelLayers.Contains(null))
         {
             yield return "extraApparelLayers contains a null layer";
+        }
+
+        foreach (var error in RequirementUtility.ConfigErrors(this, requirements))
+        {
+            yield return error;
         }
 
         if (cost.NullOrEmpty())

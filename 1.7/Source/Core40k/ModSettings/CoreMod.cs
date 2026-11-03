@@ -26,6 +26,8 @@ public abstract class CoreMod : Mod
         if (!tabsInitialized)
         {
             InitializeTabs();
+            //Set here too, so an override that skips base doesn't add its tabs again every frame.
+            tabsInitialized = true;
         }
         base.DoSettingsWindowContents(inRect);
         var menuRect = inRect.ContractedBy(10f);
@@ -33,6 +35,6 @@ public abstract class CoreMod : Mod
         menuRect.height -= 20f;
         Widgets.DrawMenuSection(menuRect);
         TabDrawer.DrawTabs(menuRect, tabs);
-        currentSettingTab.DrawTab(menuRect.ContractedBy(5f), Settings);
+        currentSettingTab?.DrawTab(menuRect.ContractedBy(5f), Settings);
     }
 }

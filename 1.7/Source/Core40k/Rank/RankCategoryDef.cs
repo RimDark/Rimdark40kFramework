@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using RimWorld;
+using UnityEngine;
 using Verse;
 
 namespace Core40k;
@@ -22,7 +23,102 @@ public class RankCategoryDef : Def
     public RoyalTitleRequirement lockedByTitle;
     public int unlockTraitDegree = 0;
     public int lockTraitDegree = 0;
-    
+
+    //A pawn must meet all unlockRequirements; meeting any lockRequirement locks the category.
+    //Checked after the single unlockedBy/lockedBy fields above.
+    public List<PawnRequirement> unlockRequirements = [];
+    public List<PawnRequirement> lockRequirements = [];
+
+    //Colour of the bridge ghosts in other categories' trees that lead into this one.
+    public Color treeColor = new Color(0.62f, 0.44f, 0.9f);
+
+    [Unsaved]
+    private Dictionary<RankDef, List<RankDef>> successors;
+
+    private static readonly List<RankDef> NoRanks = [];
+
+    /// <summary>
+    /// Ranks in this category that list the rank in their rankRequirements or rankRequirementsOneAmong, top to bottom.
+    /// </summary>
+    public List<RankDef> SuccessorsOf(RankDef rank)
+    {
+        if (successors == null)
+        {
+            successors = new Dictionary<RankDef, List<RankDef>>();
+            foreach (var data in ranks)
+            {
+                AddSuccessor(data, data.rankRequirements);
+                AddSuccessor(data, data.rankRequirementsOneAmong);
+            }
+
+            foreach (var list in successors.Values)
+            {
+                list.SortBy(successor => rankDict[successor].displayPosition.y, successor => rankDict[successor].displayPosition.x);
+            }
+        }
+
+        return rank != null && successors.TryGetValue(rank, out var result) ? result : NoRanks;
+    }
+
+    private void AddSuccessor(RankCategorySpecificData data, List<RankData> requirements)
+    {
+        if (data?.rankDef == null || requirements == null)
+        {
+            return;
+        }
+
+        foreach (var requirement in requirements)
+        {
+            if (requirement?.rankDef == null)
+            {
+                continue;
+            }
+
+            if (!successors.TryGetValue(requirement.rankDef, out var list))
+            {
+                list = [];
+                successors[requirement.rankDef] = list;
+            }
+
+            if (!list.Contains(data.rankDef))
+            {
+                list.Add(data.rankDef);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The ranks this category requires before the rank (rankRequirements, then rankRequirementsOneAmong).
+    /// </summary>
+    public List<RankDef> PredecessorsOf(RankDef rank)
+    {
+        var result = new List<RankDef>();
+        if (rank == null || !rankDict.TryGetValue(rank, out var data))
+        {
+            return result;
+        }
+
+        AddPredecessors(data.rankRequirements, result);
+        AddPredecessors(data.rankRequirementsOneAmong, result);
+        return result;
+    }
+
+    private static void AddPredecessors(List<RankData> requirements, List<RankDef> into)
+    {
+        if (requirements == null)
+        {
+            return;
+        }
+
+        foreach (var requirement in requirements)
+        {
+            if (requirement?.rankDef != null && !into.Contains(requirement.rankDef))
+            {
+                into.Add(requirement.rankDef);
+            }
+        }
+    }
+
     public override void ResolveReferences()
     {
         base.ResolveReferences();
@@ -36,154 +132,121 @@ public class RankCategoryDef : Def
             rankDict.Add(rank.rankDef, rank);
         }
     }
+    [Unsaved]
+    private List<PawnRequirement> allUnlockRequirements;
+
+    [Unsaved]
+    private List<PawnRequirement> allLockRequirements;
+
+    /// <summary>
+    /// Requirements a pawn must all meet to use this category: unlockedByGene/Hediff/Trait/Title, then &lt;unlockRequirements&gt;.
+    /// </summary>
+    public List<PawnRequirement> AllUnlockRequirements => allUnlockRequirements ??= BuildUnlockRequirements();
+
+    /// <summary>
+    /// Requirements that each lock this category when met: lockedByGene/Hediff/Trait/Title, then &lt;lockRequirements&gt;.
+    /// </summary>
+    public List<PawnRequirement> AllLockRequirements => allLockRequirements ??= BuildLockRequirements();
+
+    private List<PawnRequirement> BuildUnlockRequirements()
+    {
+        var list = new List<PawnRequirement>();
+        AddSingle(list, unlockedByGene, unlockedByHediff, unlockedByTrait, unlockTraitDegree, unlockedByTitle);
+        RequirementUtility.AddListed(list, unlockRequirements);
+        return list;
+    }
+
+    private List<PawnRequirement> BuildLockRequirements()
+    {
+        var list = new List<PawnRequirement>();
+        AddSingle(list, lockedByGene, lockedByHediff, lockedByTrait, lockTraitDegree, lockedByTitle);
+        RequirementUtility.AddListed(list, lockRequirements);
+        return list;
+    }
+
+    private static void AddSingle(List<PawnRequirement> list, GeneDef gene, HediffDef hediff, TraitDef trait, int traitDegree, RoyalTitleRequirement title)
+    {
+        if (gene != null)
+        {
+            list.Add(new PawnRequirement_Genes { genes = [gene] });
+        }
+        if (hediff != null)
+        {
+            list.Add(new PawnRequirement_Hediffs { hediffs = [hediff] });
+        }
+        if (trait != null)
+        {
+            list.Add(new PawnRequirement_Traits { traits = [new TraitData(trait, traitDegree)] });
+        }
+        if (title != null)
+        {
+            list.Add(new PawnRequirement_Titles { titles = [title] });
+        }
+    }
+
     public bool RankCategoryUnlockedFor(Pawn pawn)
     {
-        if (unlockedByGene != null)
-        {
-            if (pawn.genes == null || !pawn.genes.HasActiveGene(unlockedByGene))
-            {
-                return false;
-            }
-        }
-
-        if (unlockedByTrait != null)
-        {
-            if (pawn.story?.traits == null || !pawn.story.traits.HasTrait(unlockedByTrait, unlockTraitDegree))
-            {
-                return false;
-            }
-        }
-
-        if (unlockedByHediff != null)
-        {
-            if (pawn.health?.hediffSet == null || !pawn.health.hediffSet.HasHediff(unlockedByHediff))
-            {
-                return false;
-            }
-        }
-        
-        if (lockedByGene != null)
-        {
-            if (pawn.genes != null && pawn.genes.HasActiveGene(lockedByGene))
-            {
-                return false;
-            }
-        }
-
-        if (lockedByTrait != null)
-        {
-            if (pawn.story?.traits != null && pawn.story.traits.HasTrait(lockedByTrait, lockTraitDegree))
-            {
-                return false;
-            }
-        }
-
-        if (lockedByHediff != null)
-        {
-            if (pawn.health?.hediffSet != null && pawn.health.hediffSet.HasHediff(lockedByHediff))
-            {
-                return false;
-            }
-        }
-
-        if (ModsConfig.RoyaltyActive)
-        {
-            if (unlockedByTitle != null && !unlockedByTitle.MetBy(pawn))
-            {
-                return false;
-            }
-
-            if (lockedByTitle != null && lockedByTitle.MetBy(pawn))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        var context = new RequirementContext(pawn);
+        return RequirementUtility.AllMet(AllUnlockRequirements, context) && !RequirementUtility.AnyMet(AllLockRequirements, context);
     }
-    
+
+    /// <summary>
+    /// Why the category is locked for this pawn: the unlock requirements when any is missing, and the lock requirements
+    /// when any applies, each line coloured. Empty when the category is open.
+    /// </summary>
     public string RankCategoryRequirementsNotMetFor(Pawn pawn)
     {
+        var context = new RequirementContext(pawn);
         var stringBuilder = new StringBuilder();
-        var allRequirementUnlock = new List<string>();
-        var allRequirementLock = new List<string>();
-            
-        if (pawn.genes != null && unlockedByGene != null && !pawn.genes.HasActiveGene(unlockedByGene))
+
+        if (!RequirementUtility.AllMet(AllUnlockRequirements, context))
         {
-            allRequirementUnlock.Add("BEWH.Framework.RankSystem.CategoryRequiredGene".Translate(unlockedByGene.label.CapitalizeFirst()));
-        }
-            
-        if (unlockedByHediff != null && !pawn.health.hediffSet.HasHediff(unlockedByHediff))
-        {
-            allRequirementUnlock.Add("BEWH.Framework.RankSystem.CategoryRequiredHediff".Translate(unlockedByHediff.label.CapitalizeFirst()));
-        }
-            
-        if (unlockedByTrait != null && !pawn.story.traits.HasTrait(unlockedByTrait, unlockTraitDegree))
-        {
-            allRequirementUnlock.Add("BEWH.Framework.RankSystem.CategoryRequiredTrait".Translate(unlockedByTrait.DataAtDegree(unlockTraitDegree).label.CapitalizeFirst()));
-        }
-            
-        if (ModsConfig.RoyaltyActive && unlockedByTitle != null && !unlockedByTitle.MetBy(pawn))
-        {
-            allRequirementUnlock.Add("BEWH.Framework.RankSystem.CategoryRequiredTitle".Translate(unlockedByTitle.Label));
+            stringBuilder.Append("BEWH.Framework.RankSystem.CategoryRequiresUnlock".Translate(label.CapitalizeFirst()).Resolve().TrimEnd());
+            RequirementUtility.DescribeAll(AllUnlockRequirements, context, new RequirementReport(stringBuilder));
         }
 
-        if (allRequirementUnlock.Count > 0)
-        {
-            stringBuilder.Append("BEWH.Framework.RankSystem.CategoryRequiresUnlock".Translate(label.CapitalizeFirst()));
-            for (var i = 0; i < allRequirementUnlock.Count; i++)
-            {
-                stringBuilder.Append(allRequirementUnlock[i]);
-                if (i + 2 == allRequirementUnlock.Count)
-                {
-                    stringBuilder.Append("BEWH.Framework.RankSystem.And".Translate());
-                }
-                else if (i + 2 < allRequirementUnlock.Count)
-                {
-                    stringBuilder.Append(", ");
-                }
-            }
-        }
-        
-        if (pawn.genes != null && lockedByGene != null && pawn.genes.HasActiveGene(lockedByGene))
-        {
-            allRequirementLock.Add("BEWH.Framework.RankSystem.CategoryRequiredGene".Translate(lockedByGene.label.CapitalizeFirst()));
-        }
-            
-        if (lockedByHediff != null && pawn.health.hediffSet.HasHediff(lockedByHediff))
-        {
-            allRequirementLock.Add("BEWH.Framework.RankSystem.CategoryRequiredHediff".Translate(lockedByHediff.label.CapitalizeFirst()));
-        }
-            
-        if (lockedByTrait != null && pawn.story.traits.HasTrait(lockedByTrait, lockTraitDegree))
-        {
-            allRequirementLock.Add("BEWH.Framework.RankSystem.CategoryRequiredTrait".Translate(lockedByTrait.DataAtDegree(lockTraitDegree).label.CapitalizeFirst()));
-        }
-            
-        if (ModsConfig.RoyaltyActive && lockedByTitle != null && lockedByTitle.MetBy(pawn))
-        {
-            allRequirementLock.Add("BEWH.Framework.RankSystem.CategoryRequiredTitle".Translate(lockedByTitle.Label));
-        }
-        //locked by stuff here and then test
-        
-        if (allRequirementLock.Count > 0)
+        if (RequirementUtility.AnyMet(AllLockRequirements, context))
         {
             stringBuilder.AppendLineIfNotEmpty();
-            stringBuilder.Append("BEWH.Framework.RankSystem.CategoryRequiresLock".Translate(label.CapitalizeFirst()));
-            for (var i = 0; i < allRequirementLock.Count; i++)
+            stringBuilder.AppendLineIfNotEmpty();
+            stringBuilder.Append("BEWH.Framework.RankSystem.CategoryRequiresLock".Translate(label.CapitalizeFirst()).Resolve().TrimEnd());
+            //A met lock requirement is the bad outcome, so the colours are flipped.
+            var lockReport = new RequirementReport(stringBuilder) { Inverted = true };
+            foreach (var requirement in AllLockRequirements)
             {
-                stringBuilder.Append(allRequirementLock[i]);
-                if (i + 2 == allRequirementLock.Count)
+                if (!requirement.IsEmpty)
                 {
-                    stringBuilder.Append("BEWH.Framework.RankSystem.And".Translate());
-                }
-                else if (i + 2 < allRequirementLock.Count)
-                {
-                    stringBuilder.Append(", ");
+                    lockReport.MarkHeaders(requirement.Describe(context, lockReport));
                 }
             }
-        }   
+        }
 
-        return stringBuilder.ToString();
+        return stringBuilder.ToString().TrimEndNewlines();
+    }
+
+    public override IEnumerable<string> ConfigErrors()
+    {
+        foreach (var error in base.ConfigErrors())
+        {
+            yield return error;
+        }
+
+        foreach (var error in RequirementUtility.ConfigErrors(this, unlockRequirements, nameof(unlockRequirements)))
+        {
+            yield return error;
+        }
+
+        foreach (var error in RequirementUtility.ConfigErrors(this, lockRequirements, nameof(lockRequirements)))
+        {
+            yield return error;
+        }
+
+        foreach (var data in ranks)
+        {
+            foreach (var error in RankBridgeUtility.ConfigErrors(this, data))
+            {
+                yield return error;
+            }
+        }
     }
 }

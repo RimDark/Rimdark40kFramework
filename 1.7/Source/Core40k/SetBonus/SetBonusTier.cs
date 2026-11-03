@@ -24,41 +24,19 @@ public class SetBonusTier
 
     public string LabelOrCount => label.NullOrEmpty() ? "BEWH.Framework.GeneCustomization.TierPieces".Translate(requiredCount).ToString() : label;
 
+    /// <summary>
+    /// Writes the tier's stats and grants into report.
+    /// </summary>
+    public void DescribeEffects(EffectReport report)
+    {
+        report.Stats(statOffsets, statFactors);
+        report.Grants(givesAbilities, givesVFEAbilities, givesHediffs);
+    }
+
     public string Description()
     {
-        var builder = new StringBuilder();
-
-        if (!statOffsets.NullOrEmpty())
-        {
-            foreach (var statOffset in statOffsets)
-            {
-                builder.AppendLine(statOffset.stat.LabelCap + ": " + statOffset.ValueToStringAsOffset);
-            }
-        }
-
-        if (!statFactors.NullOrEmpty())
-        {
-            foreach (var statFactor in statFactors)
-            {
-                builder.AppendLine(statFactor.stat.LabelCap + ": " + statFactor.ToStringAsFactor);
-            }
-        }
-
-        foreach (var ability in givesAbilities)
-        {
-            builder.AppendLine("BEWH.Framework.GeneCustomization.GrantsLine".Translate(ability.LabelCap));
-        }
-
-        foreach (var ability in givesVFEAbilities)
-        {
-            builder.AppendLine("BEWH.Framework.GeneCustomization.GrantsLine".Translate(ability.LabelCap));
-        }
-
-        foreach (var hediff in givesHediffs)
-        {
-            builder.AppendLine("BEWH.Framework.GeneCustomization.GrantsLine".Translate(hediff.LabelCap));
-        }
-
-        return builder.ToString().TrimEndNewlines();
+        var report = new EffectReport();
+        DescribeEffects(report);
+        return report.ToString();
     }
 }

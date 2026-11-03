@@ -105,6 +105,57 @@ public class CompProperties_PhysicalShield : CompProperties
         return (ranged ? rangedBlockChance : meleeBlockChance) * zoneFactor;
     }
 
+    /// <summary>
+    /// Shield stats for the info card. On the props rather than the comp so they also show for the def (crafting menu, research, trade).
+    /// </summary>
+    public override IEnumerable<StatDrawEntry> SpecialDisplayStats(StatRequest req)
+    {
+        foreach (var entry in base.SpecialDisplayStats(req))
+        {
+            yield return entry;
+        }
+
+        var category = Core40kDefOf.BEWH_Shields;
+        var priority = 5000;
+
+        yield return Entry(category, "MeleeBlock", meleeBlockChance.ToStringPercent(), priority--);
+        yield return Entry(category, "RangedBlock", rangedBlockChance.ToStringPercent(), priority--);
+
+        if (frontBlockFactor != 1f)
+        {
+            yield return Entry(category, "FrontFactor", "x" + frontBlockFactor.ToStringPercent(), priority--);
+        }
+
+        yield return Entry(category, "SideFactor", "x" + sideBlockFactor.ToStringPercent(), priority--);
+        yield return Entry(category, "BackFactor", "x" + backBlockFactor.ToStringPercent(), priority--);
+
+        yield return Entry(category, "FrontArc", frontArcDegrees.ToString("F0") + "°", priority--);
+        yield return Entry(category, "BackArc", backArcDegrees.ToString("F0") + "°", priority--);
+
+        if (offSideFactor != 1f)
+        {
+            yield return Entry(category, "OffSide", "x" + offSideFactor.ToStringPercent(), priority--);
+        }
+
+        yield return Entry(category, "ArmorRating", shieldArmorRating.ToStringPercent(), priority--);
+        yield return Entry(category, "MaxBlock", maxBlockChance.ToStringPercent(), priority--);
+        yield return Entry(category, "Explosions", blocksExplosions ? "Yes".Translate() : "No".Translate(), priority--);
+
+        if (counterBashChance > 0f)
+        {
+            yield return Entry(category, "CounterBash", counterBashChance.ToStringPercent(), priority);
+        }
+    }
+
+    private static StatDrawEntry Entry(StatCategoryDef category, string key, string value, int priority)
+    {
+        return new StatDrawEntry(category,
+            ("BEWH.Framework.Shield.Stat." + key).Translate(),
+            value,
+            ("BEWH.Framework.Shield.Stat." + key + "Desc").Translate(),
+            priority);
+    }
+
     public override IEnumerable<string> ConfigErrors(ThingDef parentDef)
     {
         foreach (var error in base.ConfigErrors(parentDef))

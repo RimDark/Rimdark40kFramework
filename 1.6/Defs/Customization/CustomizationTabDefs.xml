@@ -113,4 +113,18 @@
         <sortOrder>6</sortOrder>
     </Core40k.CustomizationTabDef>
 
+    <!-- Pawn body (mechs, animals) -->
+    <Core40k.CustomizationTabDef>
+        <defName>BEWH_PawnBodyColoring</defName>
+        <label>Body Coloring</label>
+        <description>Body coloring for mechs and other non-humanlike pawns.</description>
+        <tabDrawerClass>Core40k.PawnBodyColoringTab</tabDrawerClass>
+        <workerClass>Core40k.CustomizationTabWorker_Coloring</workerClass>
+        <requiredComps>
+            <li>Core40k.CompMultiColorPawn</li>
+        </requiredComps>
+        <targetKind>Pawn</targetKind>
+        <sortOrder>0</sortOrder>
+    </Core40k.CustomizationTabDef>
+
 </Defs>

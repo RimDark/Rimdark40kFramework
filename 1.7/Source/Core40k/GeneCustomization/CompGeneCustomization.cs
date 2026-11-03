@@ -42,6 +42,19 @@ public class CompGeneCustomization : ThingComp
     [Unsaved]
     private readonly Dictionary<StatDef, float> cachedStatFactor = new();
 
+    //Scratch sets reused by EnsureCaches and ReconcileGrants, which run on every colonist sweep.
+    [Unsaved]
+    private readonly HashSet<GeneVariantSetDef> seenSets = [];
+
+    [Unsaved]
+    private readonly HashSet<HediffDef> expectedHediffs = [];
+
+    [Unsaved]
+    private readonly HashSet<AbilityDef> expectedAbilities = [];
+
+    [Unsaved]
+    private readonly HashSet<VEF.Abilities.AbilityDef> expectedVFEAbilities = [];
+
     public CompProperties_GeneCustomization Props => (CompProperties_GeneCustomization)props;
 
     public Pawn Pawn => parent as Pawn;
@@ -96,7 +109,7 @@ public class CompGeneCustomization : ThingComp
             }
         }
 
-        var seenSets = new HashSet<GeneVariantSetDef>();
+        seenSets.Clear();
         foreach (var variant in activeVariants)
         {
             foreach (var set in GeneVariantIndex.SetsFor(variant))
@@ -502,12 +515,47 @@ public class CompGeneCustomization : ThingComp
     public void Reconcile()
     {
         var changed = RemoveInvalidChoices();
-        Invalidate();
+        //Runs every sweep, so the caches are only rebuilt when the active choices actually differ.
+        if (changed || ActiveChoicesOutdated())
+        {
+            Invalidate();
+        }
         ReconcileGrants();
         if (changed)
         {
             Notify_GraphicChanged();
         }
+    }
+
+    /// <summary>
+    /// Whether the cached active choices no longer match the choices whose genes are active now,
+    /// e.g. after a gene was added, removed or switched off since the caches were built.
+    /// </summary>
+    private bool ActiveChoicesOutdated()
+    {
+        if (dirty)
+        {
+            return true;
+        }
+
+        var pawn = Pawn;
+        var activeIndex = 0;
+        foreach (var choice in choices)
+        {
+            if (choice?.gene == null || choice.variant == null || pawn?.genes == null || !pawn.genes.HasActiveGene(choice.gene))
+            {
+                continue;
+            }
+
+            if (activeIndex >= activeChoices.Count || activeChoices[activeIndex] != choice)
+            {
+                return true;
+            }
+
+            activeIndex++;
+        }
+
+        return activeIndex != activeChoices.Count;
     }
 
     private void ReconcileGrants()
@@ -520,9 +568,9 @@ public class CompGeneCustomization : ThingComp
 
         EnsureCaches();
 
-        var expectedHediffs = new HashSet<HediffDef>();
-        var expectedAbilities = new HashSet<AbilityDef>();
-        var expectedVFEAbilities = new HashSet<VEF.Abilities.AbilityDef>();
+        expectedHediffs.Clear();
+        expectedAbilities.Clear();
+        expectedVFEAbilities.Clear();
 
         foreach (var choice in activeChoices)
         {

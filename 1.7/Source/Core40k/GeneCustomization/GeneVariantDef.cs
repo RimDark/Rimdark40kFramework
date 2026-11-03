@@ -85,9 +85,13 @@ public class GeneVariantDef : Def
 
     public List<RankDef> mustHaveRank = null;
     public List<GeneDef> mustHaveGene = null;
+    public List<GeneDef> mustHaveGeneOneAmong = null;
     public List<TraitData> mustHaveTrait = null;
     public List<HediffDef> mustHaveHediff = null;
     public List<ResearchProjectDef> mustHaveResearch = null;
+
+    //Extra requirements, checked after the ones built from the mustHave fields above.
+    public List<PawnRequirement> requirements = [];
 
     public List<GeneVariantCost> costs = [];
 
@@ -118,14 +122,30 @@ public class GeneVariantDef : Def
         return category != null && appliesToCategories.Contains(category);
     }
 
+    [Unsaved]
+    private List<PawnRequirement> allRequirements;
+
+    /// <summary>
+    /// Every requirement of this variant: the ones built from the mustHave fields, then &lt;requirements&gt;.
+    /// </summary>
+    public List<PawnRequirement> AllRequirements => allRequirements ??= BuildRequirementList();
+
+    private List<PawnRequirement> BuildRequirementList()
+    {
+        var list = new List<PawnRequirement>();
+        RequirementUtility.AddLegacy(list, mustHaveRank, mustHaveGene, mustHaveGeneOneAmong, mustHaveTrait, mustHaveHediff, mustHaveResearch);
+        RequirementUtility.AddListed(list, requirements);
+        return list;
+    }
+
     public virtual bool MeetsRequirements(Pawn pawn)
     {
-        return RequirementUtility.MeetsRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, mustHaveResearch);
+        return RequirementUtility.AllMet(AllRequirements, new RequirementContext(pawn));
     }
 
     public virtual bool HasRequirements(Pawn pawn, out string lockedReason)
     {
-        return RequirementUtility.HasRequirements(pawn, mustHaveRank, mustHaveGene, mustHaveTrait, mustHaveHediff, mustHaveResearch, out lockedReason);
+        return RequirementUtility.Report(AllRequirements, new RequirementContext(pawn), out lockedReason);
     }
 
     /// <summary>
@@ -201,16 +221,9 @@ public class GeneVariantDef : Def
         var stats = current == this
             ? GeneVariantStatUtility.NetStatLines(geneDef, this)
             : GeneVariantStatUtility.StatDeltaLines(geneDef, current, this);
-        if (stats.Count > 0)
-        {
-            builder.AppendLine();
-            foreach (var line in stats)
-            {
-                builder.AppendLine(line);
-            }
-        }
-
-        AppendGrants(builder);
+        var report = new EffectReport();
+        DescribeEffects(report, stats);
+        report.AppendTo(builder);
 
         var sets = GeneVariantIndex.SetsFor(this);
         if (sets.Count > 0)
@@ -235,33 +248,21 @@ public class GeneVariantDef : Def
     }
 
     /// <summary>
-    /// Ability and hediff grants as tooltip lines, each block preceded by a blank line.
+    /// Writes the variant's effects into report: statLines (worked out for the slot by the caller) under "Stats", then grants.
+    /// Override to add lines of your own (call base).
+    /// </summary>
+    public virtual void DescribeEffects(EffectReport report, List<string> statLines)
+    {
+        report.Header(EffectReport.StatsHeader).Lines(statLines);
+        report.Grants(givesAbilities, givesVFEAbilities, givesHediffs);
+    }
+
+    /// <summary>
+    /// Ability and hediff grants as tooltip sections, each preceded by a blank line.
     /// </summary>
     public void AppendGrants(StringBuilder builder)
     {
-        if (!givesAbilities.NullOrEmpty() || !givesVFEAbilities.NullOrEmpty())
-        {
-            builder.AppendLine();
-            builder.AppendLine("BEWH.Framework.GeneCustomization.GivesAbilities".Translate());
-            foreach (var ability in givesAbilities)
-            {
-                builder.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(ability.LabelCap));
-            }
-            foreach (var ability in givesVFEAbilities)
-            {
-                builder.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(ability.LabelCap));
-            }
-        }
-
-        if (!givesHediffs.NullOrEmpty())
-        {
-            builder.AppendLine();
-            builder.AppendLine("BEWH.Framework.GeneCustomization.GivesHediffs".Translate());
-            foreach (var hediff in givesHediffs)
-            {
-                builder.AppendLine("BEWH.Framework.Customization.AppendedLabel".Translate(hediff.LabelCap));
-            }
-        }
+        new EffectReport().Grants(givesAbilities, givesVFEAbilities, givesHediffs).AppendTo(builder);
     }
 
     /// <summary>
@@ -273,17 +274,9 @@ public class GeneVariantDef : Def
         var builder = new StringBuilder();
         builder.AppendLine(description.NullOrEmpty() ? geneDef.description : description);
 
-        var stats = GeneVariantStatUtility.NetStatLines(geneDef, this);
-        if (stats.Count > 0)
-        {
-            builder.AppendLine();
-            foreach (var line in stats)
-            {
-                builder.AppendLine(line);
-            }
-        }
-
-        AppendGrants(builder);
+        var report = new EffectReport();
+        DescribeEffects(report, GeneVariantStatUtility.NetStatLines(geneDef, this));
+        report.AppendTo(builder);
 
         return builder.ToString().TrimEndNewlines();
     }
@@ -293,6 +286,11 @@ public class GeneVariantDef : Def
         foreach (var configError in base.ConfigErrors())
         {
             yield return configError;
+        }
+
+        foreach (var error in RequirementUtility.ConfigErrors(this, requirements))
+        {
+            yield return error;
         }
 
         if (appliesTo.NullOrEmpty() && appliesToCategories.NullOrEmpty() && !appliesToAll)

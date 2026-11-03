@@ -126,6 +126,13 @@ public class ArtifactTraitDef : Def
         {
             yield return "workerClass " + workerClass + " does not derive from ArtifactTraitWorker";
         }
+        if (requirements != null)
+        {
+            foreach (var error in requirements.ConfigErrors(this, nameof(requirements)))
+            {
+                yield return error;
+            }
+        }
         if (!isDrawback && commonality <= 0f)
         {
             yield return "commonality <= 0 on a non-drawback trait, it can never be rolled";

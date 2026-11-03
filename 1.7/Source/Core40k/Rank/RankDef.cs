@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using RimWorld;
 using UnityEngine;
@@ -34,6 +35,9 @@ public class RankDef : Def
 
     public bool slaveRank = false;
 
+    //Extra requirements, checked after the ones built from the fields above.
+    public List<PawnRequirement> requirements = [];
+
     public List<StatModifier> statOffsets = [];
     public List<StatModifier> statFactors = [];
         
@@ -49,7 +53,10 @@ public class RankDef : Def
     public List<string> customEffectDescriptions = [];
 
     public List<RankDef> removeRanksOnUnlock = [];
-        
+
+    //Extra effects, applied and described after the ones built from the givesX fields above.
+    public List<RankEffect> effects = [];
+
     public Vector2 colonyLimitOfRank = new Vector2(-1, -1);
 
     public bool defaultFirstRank = false;
@@ -80,7 +87,7 @@ public class RankDef : Def
     private static Game cachedGameForRankInfo = null;
     private static GameComponent_RankInfo gameCompRankInfo = null;
     
-    private static GameComponent_RankInfo GameCompRankInfo
+    internal static GameComponent_RankInfo GameCompRankInfo
     {
         get
         {
@@ -96,904 +103,367 @@ public class RankDef : Def
         }
     }
     
-    public virtual void UnlockRank(CompRankInfo rankComp)
+    [Unsaved]
+    private List<RankEffect> allEffects;
+
+    /// <summary>
+    /// Every effect of this rank in order: the ones built from the givesX fields, then &lt;effects&gt;.
+    /// Ranks in removeRanksOnUnlock are removed after the others are applied, and customEffectDescriptions come last.
+    /// </summary>
+    public List<RankEffect> AllEffects => allEffects ??= BuildEffectList();
+
+    private List<RankEffect> BuildEffectList()
     {
-        rankComp.ParentPawn.AddAbilities(givesAbilities, givesVFEAbilities);
+        var list = new List<RankEffect>();
 
-        if (!givesPassions.NullOrEmpty())
+        if (!statOffsets.NullOrEmpty() || !statFactors.NullOrEmpty())
         {
-            foreach (var passion in givesPassions)
-            {
-                var skill = rankComp.ParentPawn.skills?.GetSkill(passion.skill);
-                if (skill == null || rankComp.originalPassions.ContainsKey(skill.def))
-                {
-                    continue;
-                }
-
-                rankComp.originalPassions.Add(skill.def, skill.passion);
-                skill.passion = passion.NewPassionFor(skill);
-            }
-            rankComp.RecalculatePassions();
+            list.Add(new RankEffect_Stats { statOffsets = statOffsets ?? [], statFactors = statFactors ?? [] });
         }
-
+        if (!givesAbilities.NullOrEmpty() || !givesVFEAbilities.NullOrEmpty())
+        {
+            list.Add(new RankEffect_Abilities { abilities = givesAbilities ?? [], vfeAbilities = givesVFEAbilities ?? [] });
+        }
         if (!givesHediffs.NullOrEmpty())
         {
-            foreach (var hediffData in givesHediffs)
+            list.Add(new RankEffect_Hediffs { hediffs = givesHediffs });
+        }
+        if (!recreationFromSkills.NullOrEmpty())
+        {
+            list.Add(new RankEffect_RecreationFromSkills { skills = recreationFromSkills });
+        }
+        if (!givesPassions.NullOrEmpty())
+        {
+            list.Add(new RankEffect_Passions { passions = givesPassions });
+        }
+        if (!effects.NullOrEmpty())
+        {
+            foreach (var effect in effects)
             {
-                var hediff = HediffMaker.MakeHediff(hediffData.hediffDef, rankComp.ParentPawn, rankComp.ParentPawn.health.hediffSet.GetBodyPartRecord(hediffData.bodyPartDef));
-                hediff.Severity = hediffData.initialSeverity;
-                rankComp.ParentPawn.health.AddHediff(hediff);
+                if (effect != null)
+                {
+                    list.Add(effect);
+                }
             }
         }
-
         if (!removeRanksOnUnlock.NullOrEmpty())
         {
-            foreach (var rankDef in removeRanksOnUnlock)
-            {
-                rankComp.RemoveRank(rankDef, true);
-            }
+            list.Add(new RankEffect_RemoveRanks { ranks = removeRanksOnUnlock });
         }
+        if (!customEffectDescriptions.NullOrEmpty())
+        {
+            list.Add(new RankEffect_Description { descriptions = customEffectDescriptions });
+        }
+
+        return list;
     }
 
-    public virtual void RemoveRank(CompRankInfo rankComp)
-    {
-        rankComp.ParentPawn.RemoveAbilities(givesAbilities, givesVFEAbilities);
-        
-        if (givesPassions != null)
-        {
-            if (!rankComp.originalPassions.NullOrEmpty())
-            {
-                rankComp.RecalculatePassions();
-            }
-        }
-        
-        if (givesHediffs != null)
-        {
-            foreach (var hediff in givesHediffs)
-            {
-                var hediffOfDef = rankComp.ParentPawn.health.hediffSet.GetFirstHediffOfDef(hediff.hediffDef);
-                rankComp.ParentPawn.health.RemoveHediff(hediffOfDef);
-            }
-        }
-    }
-    
     [Unsaved]
-    private bool? overridesRequirementMet;
+    private List<StatModifier> allStatOffsets;
 
-    private static readonly StringBuilder DiscardedRequirementText = new();
+    [Unsaved]
+    private List<StatModifier> allStatFactors;
 
-    public bool RequirementMet(Pawn pawn, CompRankInfo rankComp, RankCategoryDef rankCategoryDef)
+    [Unsaved]
+    private List<SkillDef> allRecreationSkills;
+
+    [Unsaved]
+    private List<PassionMod> allPassions;
+
+    /// <summary>
+    /// Stat offsets from every RankEffect_Stats of this rank, statOffsets included.
+    /// </summary>
+    public List<StatModifier> AllStatOffsets => allStatOffsets ??= Collect<RankEffect_Stats, StatModifier>(effect => effect.statOffsets);
+
+    /// <summary>
+    /// Stat factors from every RankEffect_Stats of this rank, statFactors included.
+    /// </summary>
+    public List<StatModifier> AllStatFactors => allStatFactors ??= Collect<RankEffect_Stats, StatModifier>(effect => effect.statFactors);
+
+    public List<SkillDef> AllRecreationSkills => allRecreationSkills ??= Collect<RankEffect_RecreationFromSkills, SkillDef>(effect => effect.skills);
+
+    public List<PassionMod> AllPassions => allPassions ??= Collect<RankEffect_Passions, PassionMod>(effect => effect.passions);
+
+    private List<TItem> Collect<TEffect, TItem>(Func<TEffect, List<TItem>> items) where TEffect : RankEffect
     {
-        overridesRequirementMet ??= GetType().GetMethod(nameof(RequirementMet), [typeof(StringBuilder), typeof(Pawn), typeof(CompRankInfo), typeof(RankCategoryDef), typeof(string).MakeByRefType()])?.DeclaringType != typeof(RankDef);
-        if (!overridesRequirementMet.Value)
+        var result = new List<TItem>();
+        foreach (var effect in AllEffects)
         {
-            return RequirementMet(null, pawn, rankComp, rankCategoryDef, out _);
-        }
-
-        DiscardedRequirementText.Clear();
-        return RequirementMet(DiscardedRequirementText, pawn, rankComp, rankCategoryDef, out _);
-    }
-
-    public virtual bool RequirementMet(StringBuilder stringBuilder, Pawn pawn, CompRankInfo rankComp, RankCategoryDef currentlySelectedRankCategory, out string reason)
-    {
-        var buildText = stringBuilder != null;
-        reason = null;
-
-        //Limit on rank amount
-        var rankLimitRequirementsMet = true;
-        if (colonyLimitOfRank.x > 0 || (colonyLimitOfRank.x == 0 && colonyLimitOfRank.y > 0))
-        {
-            if (!buildText)
+            if (effect is TEffect typed && items(typed) is { } list)
             {
-                rankLimitRequirementsMet = GameCompRankInfo.CanHaveMoreOfRank(this);
-            }
-            else
-            {
-                var (allowed, allowedAmount, currentAmount) = GameCompRankInfo.CanHaveMoreOfRankWithInfo(this);
-                rankLimitRequirementsMet = allowed;
-
-                var requirementColour = rankLimitRequirementsMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                stringBuilder.Append("\n");
-                if (colonyLimitOfRank.y == 0)
+                foreach (var item in list)
                 {
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsLimitOnlyOneEver".Translate(allowedAmount, currentAmount).Colorize(requirementColour));
-                }
-                else
-                {
-                    var limitIncreaseAmount = colonyLimitOfRank.y;
-                    var text = " " + limitIncreaseAmount;
-                    switch (limitIncreaseAmount)
+                    if (item != null)
                     {
-                        case 1:
-                            text = "";
-                            break;
-                        case 2:
-                            text += "nd";
-                            break;
-                        case 3:
-                            text += "rd";
-                            break;
-                        default:
-                            text += "th";
-                            break;
-                    }
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsLimit".Translate(allowedAmount, currentAmount, text).Colorize(requirementColour));
-                }
-            }
-        }
-
-        if (!buildText && !rankLimitRequirementsMet)
-        {
-            return false;
-        }
-
-        //Skills
-        var skillRequirementsMet = true;
-        if (!requiredSkills.NullOrEmpty())
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsSkills".Translate());
-            }
-
-            foreach (var aptitude in requiredSkills)
-            {
-                var skillRequirementMet = pawn.skills.GetSkill(aptitude.skill).Level >= aptitude.level;
-                if (!skillRequirementMet)
-                {
-                    skillRequirementsMet = false;
-
-                    if (!buildText)
-                    {
-                        return false;
+                        result.Add(item);
                     }
                 }
-
-                if (!buildText)
-                {
-                    continue;
-                }
-
-                var requirementColour = skillRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                stringBuilder.AppendLine(("    " + aptitude.skill.label.CapitalizeFirst() + ": " + aptitude.level).Colorize(requirementColour));
-            }
-        }
-
-        //Ranks
-        var rankRequirementData = currentlySelectedRankCategory.rankDict[this];
-
-        //A full stat evaluation, so it is only computed once a held rank actually needs it.
-        float? rankLearningFactor = null;
-        float LearningFactor() => rankLearningFactor ??= pawn.GetStatValue(Core40kDefOf.BEWH_RankLearningFactor);
-
-        //All
-        var rankAllRequirementsMet = true;
-        if (!rankRequirementData.rankRequirements.NullOrEmpty())
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsRanks".Translate());
-            }
-
-            foreach (var rank in rankRequirementData.rankRequirements)
-            {
-                var hasRank = rankComp.HasRank(rank.rankDef);
-                var requiredDaysAsRank = rank.daysAs > 0 && (hasRank || buildText) ? Math.Round(rank.daysAs / LearningFactor()) : 0d;
-                var rankRequirementMet = hasRank && rankComp.GetDaysAsRank(rank.rankDef) >= requiredDaysAsRank;
-
-                if (!rankRequirementMet)
-                {
-                    rankAllRequirementsMet = false;
-
-                    if (!buildText)
-                    {
-                        return false;
-                    }
-                }
-
-                if (!buildText)
-                {
-                    continue;
-                }
-
-                var requirementColour = rankRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                if (rank.daysAs > 0)
-                {
-                    stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.HaveBeenRankForDays".Translate(rank.rankDef.label.CapitalizeFirst(), requiredDaysAsRank)).Colorize(requirementColour));
-                }
-                else
-                {
-                    stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.HaveAchievedRank".Translate(rank.rankDef.label.CapitalizeFirst())).Colorize(requirementColour));
-                }
-
-            }
-        }
-        //One Among
-        var rankAtLeastOneRequirementsMet = rankRequirementData.rankRequirementsOneAmong.NullOrEmpty();
-        if (!rankAtLeastOneRequirementsMet)
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsRanksAtLeastOne".Translate());
-            }
-
-            foreach (var rank in rankRequirementData.rankRequirementsOneAmong)
-            {
-                var hasRank = rankComp.HasRank(rank.rankDef);
-                var requiredDaysAsRank = rank.daysAs > 0 && (hasRank || buildText) ? Math.Round(rank.daysAs / LearningFactor()) : 0d;
-                var rankRequirementMet = hasRank && rankComp.GetDaysAsRank(rank.rankDef) >= requiredDaysAsRank;
-
-                if (rankRequirementMet)
-                {
-                    rankAtLeastOneRequirementsMet = true;
-                    
-                    if (!buildText)
-                    {
-                        break;
-                    }
-                }
-
-                if (!buildText)
-                {
-                    continue;
-                }
-
-                var requirementColour = rankRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                if (rank.daysAs > 0)
-                {
-                    stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.HaveBeenRankForDays".Translate(rank.rankDef.label.CapitalizeFirst(), requiredDaysAsRank)).Colorize(requirementColour));
-                }
-                else
-                {
-                    stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.HaveAchievedRank".Translate(rank.rankDef.label.CapitalizeFirst())).Colorize(requirementColour));
-                }
-            }
-        }
-
-        if (!buildText && !rankAtLeastOneRequirementsMet)
-        {
-            return false;
-        }
-
-        //Traits
-        //All
-        var traitsAllRequirementsMet = true;
-        if (!requiredTraitsAll.NullOrEmpty())
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsTraitAll".Translate());
-            }
-
-            foreach (var trait in requiredTraitsAll)
-            {
-                var traitsAllRequirementMet = pawn.story.traits.HasTrait(trait.traitDef, trait.degree);
-
-                if (!traitsAllRequirementMet)
-                {
-                    traitsAllRequirementsMet = false;
-
-                    if (!buildText)
-                    {
-                        return false;
-                    }
-                }
-
-                if (!buildText)
-                {
-                    continue;
-                }
-
-                var requirementColour = traitsAllRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                stringBuilder.AppendLine(("    " + trait.traitDef.DataAtDegree(trait.degree).label.CapitalizeFirst()).Colorize(requirementColour));
-            }
-        }
-        //One Among
-        var traitsAtLeastOneRequirementsMet = requiredTraitsOneAmong.NullOrEmpty();
-        if (!traitsAtLeastOneRequirementsMet)
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsTraitAtLeastOne".Translate());
-            }
-
-            foreach (var trait in requiredTraitsOneAmong)
-            {
-                var traitsAtLeastOneRequirementMet = pawn.story.traits.HasTrait(trait.traitDef, trait.degree);
-
-                if (traitsAtLeastOneRequirementMet)
-                {
-                    traitsAtLeastOneRequirementsMet = true;
-
-                    if (!buildText)
-                    {
-                        break;
-                    }
-                }
-
-                if (!buildText)
-                {
-                    continue;
-                }
-
-                var requirementColour = traitsAtLeastOneRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                stringBuilder.AppendLine(("    " + trait.traitDef.DataAtDegree(trait.degree).label.CapitalizeFirst()).Colorize(requirementColour));
-            }
-        }
-
-        if (!buildText && !traitsAtLeastOneRequirementsMet)
-        {
-            return false;
-        }
-
-        //Royal titles
-        var titlesAllRequirementsMet = true;
-        var titlesAtLeastOneRequirementsMet = requiredTitlesOneAmong.NullOrEmpty();
-        if (ModsConfig.RoyaltyActive)
-        {
-            //All
-            if (!requiredTitlesAll.NullOrEmpty())
-            {
-                if (buildText)
-                {
-                    stringBuilder.Append("\n");
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsTitleAll".Translate());
-                }
-
-                foreach (var titleRequirement in requiredTitlesAll)
-                {
-                    var titlesAllRequirementMet = titleRequirement.MetBy(pawn);
-
-                    if (!titlesAllRequirementMet)
-                    {
-                        titlesAllRequirementsMet = false;
-
-                        if (!buildText)
-                        {
-                            return false;
-                        }
-                    }
-
-                    if (!buildText)
-                    {
-                        continue;
-                    }
-
-                    var requirementColour = titlesAllRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                    stringBuilder.AppendLine(("    " + titleRequirement.Label).Colorize(requirementColour));
-                }
-            }
-            //One Among
-            if (!titlesAtLeastOneRequirementsMet)
-            {
-                if (buildText)
-                {
-                    stringBuilder.Append("\n");
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsTitleAtLeastOne".Translate());
-                }
-
-                foreach (var titleRequirement in requiredTitlesOneAmong)
-                {
-                    var titlesAtLeastOneRequirementMet = titleRequirement.MetBy(pawn);
-
-                    if (titlesAtLeastOneRequirementMet)
-                    {
-                        titlesAtLeastOneRequirementsMet = true;
-
-                        if (!buildText)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!buildText)
-                    {
-                        continue;
-                    }
-
-                    var requirementColour = titlesAtLeastOneRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                    stringBuilder.AppendLine(("    " + titleRequirement.Label).Colorize(requirementColour));
-                }
-            }
-        }
-
-        if (!buildText && !titlesAtLeastOneRequirementsMet)
-        {
-            return false;
-        }
-
-        //Genes
-        var genesAllRequirementsMet = true;
-        var genesAtLeastOneRequirementsMet = requiredGenesOneAmong.NullOrEmpty();
-        if (pawn.genes != null)
-        {
-            //All
-            if (!requiredGenesAll.NullOrEmpty())
-            {
-                if (buildText)
-                {
-                    stringBuilder.Append("\n");
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsGeneAll".Translate());
-                }
-
-                foreach (var gene in requiredGenesAll)
-                {
-                    var genesAllRequirementMet = pawn.genes.HasActiveGene(gene);
-
-                    if (!genesAllRequirementMet)
-                    {
-                        genesAllRequirementsMet = false;
-
-                        if (!buildText)
-                        {
-                            return false;
-                        }
-                    }
-
-                    if (!buildText)
-                    {
-                        continue;
-                    }
-
-                    var requirementColour = genesAllRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                    stringBuilder.AppendLine(("    " + gene.label.CapitalizeFirst()).Colorize(requirementColour));
-                }
-            }
-            //One Among
-            if (!genesAtLeastOneRequirementsMet)
-            {
-                if (buildText)
-                {
-                    stringBuilder.Append("\n");
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsGeneAtLeastOne".Translate());
-                }
-
-                foreach (var gene in requiredGenesOneAmong)
-                {
-                    var genesAtLeastOneRequirementMet = pawn.genes.HasActiveGene(gene);
-
-                    if (genesAtLeastOneRequirementMet)
-                    {
-                        genesAtLeastOneRequirementsMet = true;
-
-                        if (!buildText)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!buildText)
-                    {
-                        continue;
-                    }
-
-                    var requirementColour = genesAtLeastOneRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                    stringBuilder.AppendLine(("    " + gene.label.CapitalizeFirst()).Colorize(requirementColour));
-                }
-            }
-        }
-
-        if (!buildText && !genesAtLeastOneRequirementsMet)
-        {
-            return false;
-        }
-
-        //Hediffs
-        var hediffsAllRequirementsMet = true;
-        var hediffsAtLeastOneRequirementsMet = requiredHediffsOneAmong.NullOrEmpty();
-        if (pawn.health != null)
-        {
-            //All
-            if (!requiredHediffsAll.NullOrEmpty())
-            {
-                if (buildText)
-                {
-                    stringBuilder.Append("\n");
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsHediffAll".Translate());
-                }
-
-                foreach (var hediff in requiredHediffsAll)
-                {
-                    var hediffsAllRequirementMet = pawn.health.hediffSet.HasHediff(hediff);
-
-                    if (!hediffsAllRequirementMet)
-                    {
-                        hediffsAllRequirementsMet = false;
-
-                        if (!buildText)
-                        {
-                            return false;
-                        }
-                    }
-
-                    if (!buildText)
-                    {
-                        continue;
-                    }
-
-                    var requirementColour = hediffsAllRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                    stringBuilder.AppendLine(("    " + hediff.label.CapitalizeFirst()).Colorize(requirementColour));
-                }
-            }
-            //One Among
-            if (!hediffsAtLeastOneRequirementsMet)
-            {
-                if (buildText)
-                {
-                    stringBuilder.Append("\n");
-                    stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsHediffAtLeastOne".Translate());
-                }
-
-                foreach (var hediff in requiredHediffsOneAmong)
-                {
-                    var hediffsAtLeastOneRequirementMet = pawn.health.hediffSet.HasHediff(hediff);
-
-                    if (hediffsAtLeastOneRequirementMet)
-                    {
-                        hediffsAtLeastOneRequirementsMet = true;
-
-                        if (!buildText)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (!buildText)
-                    {
-                        continue;
-                    }
-
-                    var requirementColour = hediffsAtLeastOneRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                    stringBuilder.AppendLine(("    " + hediff.label.CapitalizeFirst()).Colorize(requirementColour));
-                }
-            }
-        }
-
-        if (!buildText && !hediffsAtLeastOneRequirementsMet)
-        {
-            return false;
-        }
-
-        //Age
-        var ageRequirementsMet = true;
-        if (requiredAgeRange.x >= 0 || requiredAgeRange.y >= 0)
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsAge".Translate());
-            }
-
-            var age = pawn.ageTracker.AgeBiologicalYears;
-
-            //Minimum
-            if (requiredAgeRange.x >= 0)
-            {
-                var minAgeRequirementMet = age >= requiredAgeRange.x;
-
-                if (!minAgeRequirementMet)
-                {
-                    ageRequirementsMet = false;
-
-                    if (!buildText)
-                    {
-                        return false;
-                    }
-                }
-
-                if (buildText)
-                {
-                    var requirementColour = minAgeRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                    stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.MinimumBiologicalAge".Translate((int)MathF.Round(requiredAgeRange.x))).Colorize(requirementColour));
-                }
-            }
-            //Maximum
-            if (requiredAgeRange.y >= 0)
-            {
-                var maxAgeRequirementMet = age <= requiredAgeRange.y;
-
-                if (!maxAgeRequirementMet)
-                {
-                    ageRequirementsMet = false;
-
-                    if (!buildText)
-                    {
-                        return false;
-                    }
-                }
-
-                if (buildText)
-                {
-                    var requirementColour = maxAgeRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                    stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.MaximumBiologicalAge".Translate((int)MathF.Round(requiredAgeRange.y))).Colorize(requirementColour));
-                }
-            }
-        }
-
-        //Gender
-        var genderRequirementMet = true;
-        if (requiredGender != Gender.None)
-        {
-            genderRequirementMet = pawn.gender == requiredGender;
-
-            if (!genderRequirementMet && !buildText)
-            {
-                return false;
-            }
-
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsGender".Translate());
-
-                var requirementColour = genderRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.MustBeGender".Translate(requiredGender.GetLabel().CapitalizeFirst())).Colorize(requirementColour));
-            }
-        }
-
-        //Slave
-        var slaveRequirementMet = true;
-        if (slaveRank)
-        {
-            slaveRequirementMet = pawn.IsSlaveOfColony;
-
-            if (!slaveRequirementMet && !buildText)
-            {
-                return false;
-            }
-
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.RequirementsStatus".Translate());
-
-                var requirementColour = slaveRequirementMet ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-                stringBuilder.AppendLine(("    " + "BEWH.Framework.RankSystem.MustBeSlaveOfColony".Translate()).Colorize(requirementColour));
-            }
-        }
-
-        //Incompatible Ranks
-        var noIncompatibleRanks = true;
-        if (!incompatibleRanks.NullOrEmpty())
-        {
-            if (buildText)
-            {
-                stringBuilder.Append("\n");
-                stringBuilder.AppendLine("BEWH.Framework.RankSystem.IncompatibleRank".Translate());
-            }
-
-            foreach (var rank in incompatibleRanks)
-            {
-                var isIncompatibleRank = rankComp.HasRank(rank);
-
-                if (isIncompatibleRank)
-                {
-                    noIncompatibleRanks = false;
-
-                    if (!buildText)
-                    {
-                        return false;
-                    }
-                }
-
-                if (!buildText)
-                {
-                    continue;
-                }
-
-                var requirementColour = !isIncompatibleRank ? Core40kUtils.RequirementMetColour : Core40kUtils.RequirementNotMetColour;
-
-                stringBuilder.AppendLine(("    " + rank.label.CapitalizeFirst()).Colorize(requirementColour));
-            }
-        }
-
-        var requirementsMet = skillRequirementsMet 
-                              && rankAllRequirementsMet 
-                              && rankAtLeastOneRequirementsMet
-                              && rankLimitRequirementsMet 
-                              && noIncompatibleRanks 
-                              && traitsAllRequirementsMet 
-                              && traitsAtLeastOneRequirementsMet 
-                              && genesAllRequirementsMet 
-                              && genesAtLeastOneRequirementsMet
-                              && titlesAllRequirementsMet
-                              && titlesAtLeastOneRequirementsMet
-                              && hediffsAllRequirementsMet
-                              && hediffsAtLeastOneRequirementsMet
-                              && ageRequirementsMet
-                              && genderRequirementMet
-                              && slaveRequirementMet;
-
-        if (buildText)
-        {
-            var requirementText = stringBuilder.ToString().TrimEnd('\r', '\n').TrimStart('\r', '\n');
-            if (requirementText.NullOrEmpty())
-            {
-                requirementText = "    " + "BEWH.Framework.CommonKeyword.None".Translate();
-            }
-
-            reason = requirementText;
-        }
-
-        return requirementsMet;
-    }
-
-    public virtual string BuildRankBonusString(StringBuilder stringBuilder)
-    {
-        //Stats
-        foreach (var statOffset in statOffsets)
-        {
-            stringBuilder.AppendLine("    " + statOffset.stat.label.CapitalizeFirst() + ": " + Core40kUtils.ValueToString(statOffset.stat, statOffset.value, finalized: false, ToStringNumberSense.Offset));
-        }
-        foreach (var statFactor in statFactors)
-        {
-            stringBuilder.AppendLine("    " + statFactor.stat.label.CapitalizeFirst() + ": " + Core40kUtils.ValueToString(statFactor.stat, statFactor.value, finalized: false, ToStringNumberSense.Factor));
-        }
-            
-        var statBonuses = stringBuilder.ToString();
-        if (!statBonuses.NullOrEmpty())
-        {
-            statBonuses = "BEWH.Framework.RankSystem.Stats".Translate() + "\n" + statBonuses;
-        }
-            
-        //Abilities
-        var abilityStringBuilder = new StringBuilder();
-        foreach (var ability in givesAbilities)
-        {
-            abilityStringBuilder.AppendLine("    " + ability.label.CapitalizeFirst());
-        }
-        foreach (var abilityVfe in givesVFEAbilities)
-        {
-            abilityStringBuilder.AppendLine("    " + abilityVfe.label.CapitalizeFirst());
-        }
-        
-        var abilityBonuses = abilityStringBuilder.ToString();
-        if (!abilityBonuses.NullOrEmpty())
-        {
-            abilityBonuses = "BEWH.Framework.RankSystem.Abilities".Translate() + "\n" + abilityBonuses;
-        }
-        
-        //Hediffs
-        var hediffStringBuilder = new StringBuilder();
-        foreach (var hediff in givesHediffs)
-        {
-            hediffStringBuilder.AppendLine("    " + hediff.hediffDef.label.CapitalizeFirst());
-        }
-        
-        var hediffBonuses = hediffStringBuilder.ToString();
-        if (!hediffBonuses.NullOrEmpty())
-        {
-            hediffBonuses = "BEWH.Framework.RankSystem.Hediffs".Translate() + "\n" + hediffBonuses;
-        }
-        
-        //Recreation From Skills
-        var recreationFromSkillStringBuilder = new StringBuilder();
-        foreach (var recreationFromSkill in recreationFromSkills)
-        {
-            recreationFromSkillStringBuilder.AppendLine("    " + recreationFromSkill.label.CapitalizeFirst());
-        }
-        
-        var recreationFromSkillBonuses = recreationFromSkillStringBuilder.ToString();
-        if (!recreationFromSkillBonuses.NullOrEmpty())
-        {
-            recreationFromSkillBonuses = "BEWH.Framework.RankSystem.RecreationFromSkill".Translate() + "\n" + recreationFromSkillBonuses;
-        }
-        
-        //Passions
-        var givesPassionsStringBuilder = new StringBuilder();
-        foreach (var passionMod in givesPassions)
-        {
-            var passionText = passionMod.skill.label.CapitalizeFirst();
-            switch (passionMod.modType)
-            {
-                case PassionMod.PassionModType.AddOneLevel:
-                    passionText += "BEWH.Framework.RankSystem.PassionModAddOne".Translate();
-                    break;
-                case PassionMod.PassionModType.DropAll:
-                    passionText += "BEWH.Framework.RankSystem.PassionModDropAll".Translate();
-                    break;
-            }
-            givesPassionsStringBuilder.AppendLine("    " + passionText);
-        }
-        
-        var givesPassionsBonuses = givesPassionsStringBuilder.ToString();
-        if (!givesPassionsBonuses.NullOrEmpty())
-        {
-            givesPassionsBonuses = "BEWH.Framework.RankSystem.PassionMod".Translate() + "\n" + givesPassionsBonuses;
-        }
-        
-        //Custom Effects
-        var customEffectStringBuilder = new StringBuilder();
-        foreach (var customEffect in customEffectDescriptions)
-        {
-            customEffectStringBuilder.Append("    " + customEffect.CapitalizeFirst());
-        }
-
-        var customEffects = customEffectStringBuilder.ToString();
-        if (!customEffects.NullOrEmpty())
-        {
-            customEffects = "BEWH.Framework.RankSystem.OtherEffects".Translate() + "\n" + customEffects;
-        }
-
-        //Final Result
-        var result = "";
-        if (!statBonuses.NullOrEmpty())
-        {
-            result = statBonuses;
-        }
-
-        if (!abilityBonuses.NullOrEmpty())
-        {
-            if (result.NullOrEmpty())
-            {
-                result = abilityBonuses;
-            }
-            else
-            {
-                result += "\n" + abilityBonuses;
-            }
-        }
-        
-        if (!hediffBonuses.NullOrEmpty())
-        {
-            if (result.NullOrEmpty())
-            {
-                result = hediffBonuses;
-            }
-            else
-            {
-                result += "\n" + hediffBonuses;
-            }
-        }
-
-        if (!recreationFromSkillBonuses.NullOrEmpty())
-        {
-            if (result.NullOrEmpty())
-            {
-                result = recreationFromSkillBonuses;
-            }
-            else
-            {
-                result += "\n" + recreationFromSkillBonuses;
-            }
-        }
-        
-        if (!givesPassionsBonuses.NullOrEmpty())
-        {
-            if (result.NullOrEmpty())
-            {
-                result = givesPassionsBonuses;
-            }
-            else
-            {
-                result += "\n" + givesPassionsBonuses;
-            }
-        }
-        
-        if (!customEffects.NullOrEmpty())
-        {
-            if (result.NullOrEmpty())
-            {
-                result = customEffects;
-            }
-            else
-            {
-                result += "\n" + customEffects;
             }
         }
 
         return result;
+    }
+
+    public float StatOffsetFor(StatDef stat)
+    {
+        return AllStatOffsets.Count == 0 ? 0f : AllStatOffsets.GetStatOffsetFromList(stat);
+    }
+
+    public float StatFactorFor(StatDef stat)
+    {
+        return AllStatFactors.Count == 0 ? 1f : AllStatFactors.GetStatFactorFromList(stat);
+    }
+
+    /// <summary>
+    /// Applies AllEffects. Overrides should call base, or the rank's effects are not given.
+    /// </summary>
+    public virtual void UnlockRank(CompRankInfo rankComp)
+    {
+        foreach (var effect in AllEffects)
+        {
+            effect.Apply(rankComp, this);
+        }
+    }
+
+    /// <summary>
+    /// Removes AllEffects. Overrides should call base, or the rank's effects stay on the pawn.
+    /// </summary>
+    public virtual void RemoveRank(CompRankInfo rankComp)
+    {
+        foreach (var effect in AllEffects)
+        {
+            effect.Remove(rankComp, this);
+        }
+    }
+
+    [Unsaved]
+    private List<PawnRequirement> allRequirements;
+
+    /// <summary>
+    /// Every requirement of this rank in display order: the ones built from the requiredX fields, then &lt;requirements&gt;.
+    /// </summary>
+    public List<PawnRequirement> AllRequirements => allRequirements ??= BuildRequirementList();
+
+    private List<PawnRequirement> BuildRequirementList()
+    {
+        var list = new List<PawnRequirement>();
+
+        if (RankUtils.IsLimited(this))
+        {
+            list.Add(new RankRequirement_ColonyLimit());
+        }
+        if (!requiredSkills.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Skills { skills = requiredSkills.Where(aptitude => aptitude?.skill != null).Select(aptitude => new SkillLevelRange(aptitude.skill, aptitude.level)).ToList() });
+        }
+        list.Add(new RankRequirement_CategoryRanks());
+        if (!requiredTraitsAll.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Traits { traits = requiredTraitsAll });
+        }
+        if (!requiredTraitsOneAmong.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Traits { traits = requiredTraitsOneAmong, oneAmong = true });
+        }
+        if (!requiredTitlesAll.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Titles { titles = requiredTitlesAll });
+        }
+        if (!requiredTitlesOneAmong.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Titles { titles = requiredTitlesOneAmong, oneAmong = true });
+        }
+        //Rank gene fields have always let a pawn without a gene tracker through "all".
+        if (!requiredGenesAll.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Genes { genes = requiredGenesAll, passWithoutGeneTracker = true });
+        }
+        if (!requiredGenesOneAmong.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Genes { genes = requiredGenesOneAmong, oneAmong = true, passWithoutGeneTracker = true });
+        }
+        if (!requiredHediffsAll.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Hediffs { hediffs = requiredHediffsAll });
+        }
+        if (!requiredHediffsOneAmong.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_Hediffs { hediffs = requiredHediffsOneAmong, oneAmong = true });
+        }
+        if (requiredAgeRange.x >= 0 || requiredAgeRange.y >= 0)
+        {
+            list.Add(new PawnRequirement_Age { minAge = requiredAgeRange.x, maxAge = requiredAgeRange.y });
+        }
+        if (requiredGender != Gender.None)
+        {
+            list.Add(new PawnRequirement_Gender { gender = requiredGender });
+        }
+        if (slaveRank)
+        {
+            list.Add(new PawnRequirement_SlaveOfColony());
+        }
+        if (!incompatibleRanks.NullOrEmpty())
+        {
+            list.Add(new PawnRequirement_IncompatibleRanks { ranks = incompatibleRanks });
+        }
+        RequirementUtility.AddListed(list, requirements);
+
+        return list;
+    }
+
+    public override IEnumerable<string> ConfigErrors()
+    {
+        foreach (var error in base.ConfigErrors())
+        {
+            yield return error;
+        }
+
+        foreach (var error in RequirementUtility.ConfigErrors(this, requirements))
+        {
+            yield return error;
+        }
+
+        if (effects == null)
+        {
+            yield break;
+        }
+
+        foreach (var effect in effects)
+        {
+            if (effect == null)
+            {
+                yield return $"{defName} has an empty entry in effects.";
+                continue;
+            }
+
+            foreach (var error in effect.ConfigErrors(this))
+            {
+                yield return error;
+            }
+        }
+    }
+
+    [Unsaved]
+    private bool? overridesRequirementMet;
+
+    //Set by the base RequirementMet, so the checks below can tell when an override skipped it.
+    [Unsaved]
+    private bool requirementsEvaluated;
+
+    private static readonly StringBuilder DiscardedRequirementText = new();
+
+    private bool OverridesRequirementMet => overridesRequirementMet ??= GetType().GetMethod(nameof(RequirementMet), [typeof(StringBuilder), typeof(Pawn), typeof(CompRankInfo), typeof(RankCategoryDef), typeof(string).MakeByRefType()])?.DeclaringType != typeof(RankDef);
+
+    /// <summary>
+    /// Whether the pawn meets every requirement of this rank in the given category, without building any text.
+    /// </summary>
+    public bool RequirementMet(Pawn pawn, CompRankInfo rankComp, RankCategoryDef rankCategoryDef)
+    {
+        if (!OverridesRequirementMet)
+        {
+            return RequirementsMet(new RequirementContext(pawn, rankComp, this, rankCategoryDef), null);
+        }
+
+        //Older overrides may not expect a null StringBuilder, so they get one whose text is thrown away.
+        DiscardedRequirementText.Clear();
+        requirementsEvaluated = false;
+        var met = RequirementMet(DiscardedRequirementText, pawn, rankComp, rankCategoryDef, out _);
+        if (met && !requirementsEvaluated)
+        {
+            //The override skipped base.RequirementMet; the rank's own requirements still apply.
+            met = RequirementsMet(new RequirementContext(pawn, rankComp, this, rankCategoryDef), null);
+        }
+
+        return met;
+    }
+
+    /// <summary>
+    /// Whether the pawn meets every requirement of this rank in the given category, with the requirement text for the rank tab.
+    /// </summary>
+    public bool RequirementMet(Pawn pawn, CompRankInfo rankComp, RankCategoryDef rankCategoryDef, out string reason)
+    {
+        var stringBuilder = new StringBuilder();
+        requirementsEvaluated = false;
+        var met = RequirementMet(stringBuilder, pawn, rankComp, rankCategoryDef, out reason);
+        if (!requirementsEvaluated)
+        {
+            //The override skipped base.RequirementMet; the rank's own requirements still apply.
+            var requirementsMet = RequirementsMet(new RequirementContext(pawn, rankComp, this, rankCategoryDef), new RequirementReport(stringBuilder));
+            met = met && requirementsMet;
+            reason = RequirementReport.Finish(stringBuilder);
+        }
+
+        return met;
+    }
+
+    /// <summary>
+    /// Adds a section header to the requirement text, spaced like the framework's own headers. Does nothing when stringBuilder is null.
+    /// For RequirementMet overrides; new requirements are better written as a PawnRequirement.
+    /// </summary>
+    public static void AppendRequirementHeader(StringBuilder stringBuilder, string header)
+    {
+        new RequirementReport(stringBuilder).Header(header);
+    }
+
+    /// <summary>
+    /// Adds one requirement line, indented and coloured by whether it is met, like the framework's own lines.
+    /// For RequirementMet overrides: append before calling base so the line ends up in the reason text. Does nothing when stringBuilder is null.
+    /// </summary>
+    public static void AppendRequirement(StringBuilder stringBuilder, string text, bool met)
+    {
+        stringBuilder?.AppendLine(RequirementReport.FormatLine(text, met));
+    }
+
+    /// <summary>
+    /// Checks AllRequirements. With a null stringBuilder only the result is worked out; otherwise the requirement text is added to it and returned in reason.
+    /// Overriding this is the older way to add requirements; a PawnRequirement in &lt;requirements&gt; is preferred.
+    /// </summary>
+    public virtual bool RequirementMet(StringBuilder stringBuilder, Pawn pawn, CompRankInfo rankComp, RankCategoryDef currentlySelectedRankCategory, out string reason)
+    {
+        requirementsEvaluated = true;
+        var context = new RequirementContext(pawn, rankComp, this, currentlySelectedRankCategory);
+
+        if (stringBuilder == null)
+        {
+            reason = null;
+            return RequirementsMet(context, null);
+        }
+
+        var met = RequirementsMet(context, new RequirementReport(stringBuilder));
+        reason = RequirementReport.Finish(stringBuilder);
+        return met;
+    }
+
+    //A null report only checks, stopping at the first requirement that fails.
+    private bool RequirementsMet(RequirementContext context, RequirementReport report)
+    {
+        return report == null
+            ? RequirementUtility.AllMet(AllRequirements, context)
+            : RequirementUtility.DescribeAll(AllRequirements, context, report);
+    }
+
+    /// <summary>
+    /// Writes what the rank does into report: every effect's Describe. Override to add lines of your own (call base).
+    /// </summary>
+    public virtual void DescribeEffects(EffectReport report)
+    {
+        foreach (var effect in AllEffects)
+        {
+            effect.Describe(report);
+        }
+    }
+
+    /// <summary>
+    /// The rank tab's bonus text, built from DescribeEffects. stringBuilder is not used; it is kept for older overrides.
+    /// </summary>
+    public virtual string BuildRankBonusString(StringBuilder stringBuilder)
+    {
+        var report = new EffectReport();
+        DescribeEffects(report);
+
+        var builder = new StringBuilder();
+        report.AppendTo(builder, leadingGap: false);
+        return builder.ToString();
     }
 
     public string GetRankBonusString()
@@ -1009,6 +479,9 @@ public class RankDef : Def
     
     public virtual void Notify_Killed(CompRankInfo rankComp, Map prevMap, DamageInfo? dinfo = null)
     {
-        
+        foreach (var effect in AllEffects)
+        {
+            effect.Notify_Killed(rankComp, this, prevMap, dinfo);
+        }
     }
 }

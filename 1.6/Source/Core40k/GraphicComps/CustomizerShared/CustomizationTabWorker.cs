@@ -7,6 +7,8 @@ public enum TabTargetKind
     Any = 0,
     Apparel = 1,
     Equipment = 2,
+    //Non-humanlike pawn races (mechs, animals). Any only matches items.
+    Pawn = 3,
 }
 
 public abstract class CustomizationTabWorker
@@ -26,7 +28,8 @@ public abstract class CustomizationTabWorker
         {
             TabTargetKind.Apparel => thingDef.IsApparel,
             TabTargetKind.Equipment => thingDef.IsWeapon,
-            _ => true,
+            TabTargetKind.Pawn => thingDef.race is { Humanlike: false },
+            _ => thingDef.race == null,
         };
     }
 

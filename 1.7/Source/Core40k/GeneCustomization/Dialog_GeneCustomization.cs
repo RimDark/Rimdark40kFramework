@@ -478,15 +478,7 @@ public class Dialog_GeneCustomization : Window
         if (variant == null)
         {
             builder.AppendLine("BEWH.Framework.GeneCustomization.NoneTooltip".Translate());
-            var lines = GeneVariantStatUtility.StatDeltaLines(selectedSlot, current, null);
-            if (lines.Count > 0)
-            {
-                builder.AppendLine();
-                foreach (var line in lines)
-                {
-                    builder.AppendLine(line);
-                }
-            }
+            new EffectReport().Header(EffectReport.StatsHeader).Lines(GeneVariantStatUtility.StatDeltaLines(selectedSlot, current, null)).AppendTo(builder);
         }
         else
         {

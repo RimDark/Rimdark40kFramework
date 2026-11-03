@@ -57,13 +57,9 @@ public class GizmoTextureTogglePatch
             yield break;
         }
 
+        //Only toggles that are on are stored; a missing pair reads as off.
         var pair = (pawn, __instance);
-        
-        if (!coreUtils.cachedGizmoToggles.ContainsKey(pair))
-        {
-            coreUtils.cachedGizmoToggles.Add(pair, false);
-        }
-        
+
         foreach (var textureFlag in toggleFlags)
         {
             var gizmoOn = coreUtils.cachedGizmoToggles.TryGetValue(pair, out var on) && on;
@@ -76,7 +72,14 @@ public class GizmoTextureTogglePatch
                 toggleAction = delegate
                 {
                     var current = coreUtils.cachedGizmoToggles.TryGetValue(pair, out var active) && active;
-                    coreUtils.cachedGizmoToggles[pair] = !current;
+                    if (current)
+                    {
+                        coreUtils.cachedGizmoToggles.Remove(pair);
+                    }
+                    else
+                    {
+                        coreUtils.cachedGizmoToggles[pair] = true;
+                    }
                     pawn.Drawer?.renderer?.SetAllGraphicsDirty();
                 },
             };
