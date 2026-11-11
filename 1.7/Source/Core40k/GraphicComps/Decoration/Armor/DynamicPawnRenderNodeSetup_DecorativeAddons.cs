@@ -37,39 +37,69 @@ public class DynamicPawnRenderNodeSetup_DecorativeAddons : DynamicPawnRenderNode
                 {
                     continue;
                 }
-                PawnRenderNodePropertiesMultiColor pawnRenderNodeProperty;
-                PawnRenderNode node;
-                switch (decorativeComp.Props.decorativeType)
+                if (!TryMakeProps(decorationDef, decoration.Value, decorativeComp, pawnBodyType, tree, out var pawnRenderNodeProperty, out var node))
                 {
-                    case DecorativeType.Head:
-                        pawnRenderNodeProperty = MakeHeadProps(decorationDef, decoration.Value, decorativeComp);
-                        node = (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.ApparelHead, out node) ? node : null) ??
-                                              (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.Head, out node) ? node : null);
-                        break;
-                    case DecorativeType.Body:
-                        pawnRenderNodeProperty = MakeBodyProps(decorationDef, decoration.Value, decorativeComp, pawnBodyType);
-                        if (decorationDef.drawInHeadSpace)
-                        {
-                            node = (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.ApparelHead, out node) ? node : null) ??
-                                   (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.Head, out node) ? node : null);
-                        }
-                        else
-                        {
-                            node = (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.ApparelBody, out node) ? node : null) ??
-                                   (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.Body, out node) ? node : null);
-                        }
-                        break;
-                    default:
-                        continue;
+                    continue;
                 }
-                
+
                 var pawnRenderNode = new PawnRenderNode_AttachmentExtraDecoration(pawn, pawnRenderNodeProperty, tree);
-                
+
                 pawnRenderNode.decorativeComp = decorativeComp;
                 pawnRenderNode.decorationDef = decoration.Key;
-                
+
                 yield return (pawnRenderNode, node);
+
+                if (!decorationDef.HasGlow || !decoration.Value.GlowEnabled
+                    || !TryMakeProps(decorationDef, decoration.Value, decorativeComp, pawnBodyType, tree, out var glowProperty, out _))
+                {
+                    continue;
+                }
+
+                //A shader's render queue covers the whole draw, so the part that skips the light overlay has
+                //to be a node of its own: the same texture, mask, flip and offsets through the glow shader.
+                glowProperty.shaderTypeDef = Core40kDefOf.BEWH_GlowThreeColor;
+                glowProperty.color = decorationDef.GlowColour(GlowChannel.Colour, decoration.Value.Color);
+                glowProperty.colorTwo = decorationDef.GlowColour(GlowChannel.ColourTwo, decoration.Value.ColorTwo);
+                glowProperty.colorThree = decorationDef.GlowColour(GlowChannel.ColourThree, decoration.Value.ColorThree);
+
+                var glowNode = new PawnRenderNode_AttachmentExtraDecoration(pawn, glowProperty, tree)
+                {
+                    decorativeComp = decorativeComp,
+                    decorationDef = decoration.Key,
+                    isGlowPass = true,
+                };
+
+                yield return (glowNode, node);
             }
+        }
+    }
+
+    private bool TryMakeProps(ExtraDecorationDef decorationDef, DecorationSettings decorationSettings, CompDecorative decorativeComp, BodyTypeDef pawnBodyType, PawnRenderTree tree, out PawnRenderNodePropertiesMultiColor pawnRenderNodeProperty, out PawnRenderNode node)
+    {
+        switch (decorativeComp.Props.decorativeType)
+        {
+            case DecorativeType.Head:
+                pawnRenderNodeProperty = MakeHeadProps(decorationDef, decorationSettings, decorativeComp);
+                node = (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.ApparelHead, out node) ? node : null) ??
+                       (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.Head, out node) ? node : null);
+                return true;
+            case DecorativeType.Body:
+                pawnRenderNodeProperty = MakeBodyProps(decorationDef, decorationSettings, decorativeComp, pawnBodyType);
+                if (decorationDef.drawInHeadSpace)
+                {
+                    node = (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.ApparelHead, out node) ? node : null) ??
+                           (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.Head, out node) ? node : null);
+                }
+                else
+                {
+                    node = (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.ApparelBody, out node) ? node : null) ??
+                           (tree.TryGetNodeByTag(PawnRenderNodeTagDefOf.Body, out node) ? node : null);
+                }
+                return true;
+            default:
+                pawnRenderNodeProperty = null;
+                node = null;
+                return false;
         }
     }
 

@@ -10,6 +10,9 @@ public class PawnRenderNode_AttachmentExtraDecoration : PawnRenderNode
     public CompDecorativeBase decorativeComp;
     public DecorationDef decorationDef;
 
+    //Set when this node draws the lit part of the decoration rather than the decoration itself.
+    public bool isGlowPass;
+
     private List<PawnRenderNode> hostApparelNodes;
     private bool hostApparelNodesResolved;
     

@@ -481,6 +481,15 @@ public class CompDecorativeBase : CompGraphicParent
         settings.Flipped = flipped;
         Notify_GraphicChanged();
     }
+    public void SetDecorationGlow(DecorationDef decoration, bool glowEnabled)
+    {
+        if (!decorations.TryGetValue(decoration, out var settings) || settings.GlowEnabled == glowEnabled)
+        {
+            return;
+        }
+        settings.GlowEnabled = glowEnabled;
+        Notify_GraphicChanged();
+    }
     public void SetDecorationToParentColors(DecorationDef decoration)
     {
         decorations[decoration].Color = MultiColor.DrawColor;
@@ -554,6 +563,7 @@ public class CompDecorativeBase : CompGraphicParent
             var extraDecorationsSetting = new DecorationSettings()
             {
                 Flipped = presetPart.flipped,
+                GlowEnabled = presetPart.glowEnabled,
                 Color = presetPart.colour,
                 ColorTwo = presetPart.colourTwo,
                 ColorThree = presetPart.colourThree,
@@ -594,7 +604,8 @@ public class CompDecorativeBase : CompGraphicParent
             var extraDecorationsSetting = new DecorationSettings()
             {
                 Flipped = presetPart.flipped,
-                Color = presetPart.colour ?? (presetPart.decorationDef.useParentColourAsDefault ? multiColComp?.DrawColor ?? parent.DrawColor : Color.white),
+                GlowEnabled = presetPart.glowEnabled,
+                Color = presetPart.colour ??(presetPart.decorationDef.useParentColourAsDefault ? multiColComp?.DrawColor ?? parent.DrawColor : Color.white),
                 ColorTwo = presetPart.colourTwo ?? (presetPart.decorationDef.useParentColourAsDefault ? multiColComp?.DrawColorTwo ?? parent.DrawColorTwo : Color.white),
                 ColorThree = presetPart.colourThree ?? (presetPart.decorationDef.useParentColourAsDefault ? multiColComp?.DrawColorThree ?? Color.white : Color.white),
                 maskDef = presetPart.maskDef ?? Core40kDefOf.BEWH_DefaultMask,
@@ -722,7 +733,8 @@ public class CompDecorativeBase : CompGraphicParent
                 || original.Color != current.Color
                 || original.ColorTwo != current.ColorTwo
                 || original.ColorThree != current.ColorThree
-                || original.Flipped != current.Flipped)
+                || original.Flipped != current.Flipped
+                || original.GlowEnabled != current.GlowEnabled)
             {
                 appearanceChanged = true;
             }

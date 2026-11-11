@@ -9,6 +9,7 @@ public class PresetData
     public DecorationDef decorationDef;
 
     public bool flipped = false;
+    public bool glowEnabled = false;
     public Color? colour = null;
     public Color? colourTwo = null;
     public Color? colourThree = null;
@@ -42,6 +43,9 @@ public class PresetData
             {
                 case "flipped":
                     flipped = ParseHelper.FromString<bool>(childNode.FirstChild.Value);
+                    break;
+                case "glowEnabled":
+                    glowEnabled = ParseHelper.FromString<bool>(childNode.FirstChild.Value);
                     break;
                 case "colour":
                     colour = ParseHelper.FromString<Color>(childNode.FirstChild.Value);

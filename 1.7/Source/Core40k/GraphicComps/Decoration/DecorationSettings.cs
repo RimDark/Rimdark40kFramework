@@ -9,6 +9,7 @@ public class DecorationSettings : IExposable
     public Color ColorTwo = Color.white;
     public Color ColorThree = Color.white;
     public bool Flipped = false;
+    public bool GlowEnabled = false;
     public MaskDef maskDef = null;
 
     public DecorationSettings()
@@ -19,6 +20,7 @@ public class DecorationSettings : IExposable
     public DecorationSettings(DecorationSettings decorationSettings)
     {
         Flipped = decorationSettings.Flipped;
+        GlowEnabled = decorationSettings.GlowEnabled;
         Color = decorationSettings.Color;
         ColorTwo = decorationSettings.ColorTwo;
         ColorThree = decorationSettings.ColorThree;
@@ -31,6 +33,7 @@ public class DecorationSettings : IExposable
         Scribe_Values.Look(ref ColorTwo, "ColorTwo");
         Scribe_Values.Look(ref ColorThree, "ColorThree");
         Scribe_Values.Look(ref Flipped, "Flipped");
+        Scribe_Values.Look(ref GlowEnabled, "GlowEnabled");
         Scribe_Defs.Look(ref maskDef, "maskDef");
     }
 }

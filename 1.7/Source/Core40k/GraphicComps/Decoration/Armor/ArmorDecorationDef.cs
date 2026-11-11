@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using RimWorld;
+using UnityEngine;
 using Verse;
 
 namespace Core40k;
@@ -48,6 +49,19 @@ public class ExtraDecorationDef : DecorationDef
     
     public List<BodyTypeDef> appliesToBodyTypes = [];
 
+    //Mask channels that glow, unaffected by darkness, while the player has the decoration's glow turned on.
+    public List<GlowChannel> glowChannels = [];
+
+    public bool HasGlow => !glowChannels.NullOrEmpty();
+
+    /// <summary>
+    /// The colour the glow shader gets for a channel: clear for one that does not glow.
+    /// </summary>
+    public Color GlowColour(GlowChannel channel, Color colour)
+    {
+        return glowChannels.Contains(channel) ? colour : Color.clear;
+    }
+
     //Extra offset, layer and scale per host apparel defName, added on top of drawData the same way
     //the per-item precision data is. The precision tab's Debug copy exports an entry for this.
     public Dictionary<string, DecorationDrawData> apparelSpecificDrawData = [];
@@ -93,6 +107,19 @@ public class ExtraDecorationDef : DecorationDef
         }
 
         apparelSpecificDrawDataByDef = byDef;
+    }
+
+    public override IEnumerable<string> ConfigErrors()
+    {
+        foreach (var configError in base.ConfigErrors())
+        {
+            yield return configError;
+        }
+
+        if (isInternal && HasGlow)
+        {
+            yield return "isInternal but has glowChannels - internal upgrades are never drawn";
+        }
     }
 
     protected override void AddBuiltInRequirements(List<PawnRequirement> list)

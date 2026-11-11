@@ -40,6 +40,7 @@ public class DecorationBaseTab : CustomizerTabDrawer
     private float additionalYIncreaseFromColor = 0f;
     private float additionalYIncreaseFromDebug = 0f;
     private float additionalYIncreaseFromMaskAndPreset = 0f;
+    private float additionalYIncreaseFromGlow = 0f;
 
     private DecorationDef selectedPrecisionDef = null;
     private CompDecorativeBase selectedPrecisionComp = null;
@@ -530,6 +531,7 @@ public class DecorationBaseTab : CustomizerTabDrawer
                 colourTwo = decoration.Value.ColorTwo,
                 colourThree = decoration.Value.ColorThree,
                 flipped = decoration.Value.Flipped,
+                glowEnabled = decoration.Value.GlowEnabled,
                 maskDef = decoration.Value.maskDef,
             };
                 
@@ -652,7 +654,8 @@ public class DecorationBaseTab : CustomizerTabDrawer
                 if (decorativeComp.Decorations.ContainsKey(decoDef) && decoDef.HasVisual)
                 {
                     var bottomRect = new Rect(new Vector2(iconRect.x, iconRect.yMax + 3f), iconRect.size);
-                    bottomRect.height /= 3;
+                    //Whole pixels, so the stacked buttons below the colours all round the same way and keep equal gaps.
+                    bottomRect.height = Mathf.Floor(bottomRect.height / 3f);
                     
                     //Color Selection
                     if (decoDef.colourable && !(locked && decorativeComp.AreDecorationColoursLocked(decoDef)))
@@ -662,7 +665,13 @@ public class DecorationBaseTab : CustomizerTabDrawer
                         //Masking and Color Preset
                         DrawColorPresetAndMaskOptions(ref bottomRect, decoDef, decorativeComp);
                     }
-                    
+
+                    //Glow toggle
+                    if (decoDef is ExtraDecorationDef { HasGlow: true })
+                    {
+                        DrawGlowToggle(bottomRect, decoDef, decorativeComp);
+                    }
+
                     //Debug offset TODO: Expand for layering or add hook here?
                     if (ModSettings.showCustomizationDebugOptions)
                     {
@@ -678,10 +687,11 @@ public class DecorationBaseTab : CustomizerTabDrawer
                 curY += iconSize.x;
                 curX = viewRect.x;
 
-                curY += additionalYIncreaseFromDebug + additionalYIncreaseFromColor + additionalYIncreaseFromMaskAndPreset;
+                curY += additionalYIncreaseFromDebug + additionalYIncreaseFromColor + additionalYIncreaseFromMaskAndPreset + additionalYIncreaseFromGlow;
                 additionalYIncreaseFromDebug = 0;
                 additionalYIncreaseFromColor = 0;
                 additionalYIncreaseFromMaskAndPreset = 0;
+                additionalYIncreaseFromGlow = 0;
             }
         }
         curY += 34f;
@@ -920,7 +930,26 @@ public class DecorationBaseTab : CustomizerTabDrawer
         
         additionalYIncreaseFromMaskAndPreset = presetSelection.height;
     }
-    
+
+    private void DrawGlowToggle(Rect bottomRect, DecorationDef decoDef, CompDecorativeBase decorativeComp)
+    {
+        var glowEnabled = decorativeComp.Decorations[decoDef].GlowEnabled;
+        //Placed like the precision button, so the rows below the colours keep the same 3f gaps.
+        var glowRect = new Rect(bottomRect)
+        {
+            y = (!decoDef.colourable ? bottomRect.yMin : bottomRect.yMax + additionalYIncreaseFromMaskAndPreset) + 3f,
+        };
+        glowRect = glowRect.ContractedBy(1f);
+
+        TooltipHandler.TipRegion(glowRect, "BEWH.Framework.Customization.GlowDesc".Translate());
+        if (Widgets.ButtonText(glowRect, (glowEnabled ? "BEWH.Framework.Customization.GlowOn" : "BEWH.Framework.Customization.GlowOff").Translate()))
+        {
+            decorativeComp.SetDecorationGlow(decoDef, !glowEnabled);
+        }
+
+        additionalYIncreaseFromGlow = glowRect.height + 3f;
+    }
+
     private void DrawPrecisionButton(ref Rect bottomRect, DecorationDef decoDef, CompDecorativeBase decorativeComp, Rect mainRect)
     {
         var yVal = !decoDef.colourable ? bottomRect.yMin : bottomRect.yMax;
@@ -932,6 +961,11 @@ public class DecorationBaseTab : CustomizerTabDrawer
         if (decoDef.colourable)
         {
             precisionRect.y += additionalYIncreaseFromMaskAndPreset;
+        }
+
+        if (decoDef is ExtraDecorationDef { HasGlow: true })
+        {
+            precisionRect.y += additionalYIncreaseFromGlow;
         }
 
         precisionRect = precisionRect.ContractedBy(1f);

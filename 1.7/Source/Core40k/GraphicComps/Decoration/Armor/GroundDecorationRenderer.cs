@@ -386,6 +386,15 @@ public static class GroundDecorationRenderer
             }
 
             cache.draws.Add(new GroundDraw(material, offset, scale, angle, layer, flip));
+
+            if (decoration.HasGlow && settings.GlowEnabled)
+            {
+                var glowMaterial = ArmorDecorationGraphicUtility.BuildGlowGraphic(decoration, settings, useBodyType, graphicBodyType)?.MatAt(Rot4.South);
+                if (glowMaterial != null)
+                {
+                    cache.draws.Add(new GroundDraw(glowMaterial, offset, scale, angle, layer + ArmorDecorationGraphicUtility.GlowLayerOffset, flip));
+                }
+            }
         }
     }
 }

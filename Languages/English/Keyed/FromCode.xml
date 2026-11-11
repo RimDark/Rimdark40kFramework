@@ -85,6 +85,9 @@
 
   <BEWH.Framework.Customization.Mask>Masks</BEWH.Framework.Customization.Mask>
   <BEWH.Framework.Customization.MaskDesc>Select a mask</BEWH.Framework.Customization.MaskDesc>
+  <BEWH.Framework.Customization.GlowOn>Glow: On</BEWH.Framework.Customization.GlowOn>
+  <BEWH.Framework.Customization.GlowOff>Glow: Off</BEWH.Framework.Customization.GlowOff>
+  <BEWH.Framework.Customization.GlowDesc>Toggle the glowing parts of this decoration. They stay lit in the dark.</BEWH.Framework.Customization.GlowDesc>
 
   <BEWH.Framework.Customization.DecorationPreset>Preset</BEWH.Framework.Customization.DecorationPreset>
   <BEWH.Framework.Customization.DecorationPresetDesc>Select a decoration preset</BEWH.Framework.Customization.DecorationPresetDesc>

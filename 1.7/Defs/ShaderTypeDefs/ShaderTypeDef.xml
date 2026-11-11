@@ -6,4 +6,9 @@
     <shaderPath>BEWH_CutoutThreeColor</shaderPath>
   </ShaderTypeDef>
 
+  <ShaderTypeDef>
+    <defName>BEWH_GlowThreeColor</defName>
+    <shaderPath>BEWH_GlowThreeColor</shaderPath>
+  </ShaderTypeDef>
+
 </Defs>

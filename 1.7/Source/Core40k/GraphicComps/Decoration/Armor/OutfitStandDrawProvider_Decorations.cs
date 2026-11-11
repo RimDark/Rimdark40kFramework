@@ -48,70 +48,84 @@ public class OutfitStandDrawProvider_Decorations : OutfitStandDrawProvider
                 graphicBodyType = matched ?? context.ApparelBodyType;
             }
 
+            var headSpace = !bodyComp || decoration.drawInHeadSpace;
+
             var graphic = ArmorDecorationGraphicUtility.BuildGraphic(decoration, settings, useBodyType, graphicBodyType);
-            if (graphic == null)
+            if (graphic != null)
+            {
+                AddDraws(context, decorativeComp, decoration, settings, headSpace, graphic, 0f);
+            }
+
+            if (decoration.HasGlow && settings.GlowEnabled)
+            {
+                var glowGraphic = ArmorDecorationGraphicUtility.BuildGlowGraphic(decoration, settings, useBodyType, graphicBodyType);
+                if (glowGraphic != null)
+                {
+                    AddDraws(context, decorativeComp, decoration, settings, headSpace, glowGraphic, ArmorDecorationGraphicUtility.GlowLayerOffset);
+                }
+            }
+        }
+    }
+
+    private static void AddDraws(OutfitStandDrawContext context, CompDecorative decorativeComp, ExtraDecorationDef decoration, DecorationSettings settings, bool headSpace, Graphic graphic, float extraLayer)
+    {
+        //Only the default for a rotation the decoration does not author, so an unlayered
+        //decoration lands level with its apparel and draws over it.
+        var nodeLayer = headSpace ? HeadNodeLayer : BodyNodeLayer;
+        var drawData = decoration.drawData;
+
+        var baseScale = drawData?.scale ?? 1f;
+        if (context.IsChild && drawData != null)
+        {
+            baseScale *= drawData.childScale;
+        }
+
+        var showRotation = decoration.ShowRotation(settings.Flipped);
+
+        for (var i = 0; i < 4; i++)
+        {
+            var rot = new Rot4(i);
+            if (showRotation != null && !showRotation.Contains(rot))
             {
                 continue;
             }
 
-            var headSpace = !bodyComp || decoration.drawInHeadSpace;
-            //Only the default for a rotation the decoration does not author, so an unlayered
-            //decoration lands level with its apparel and draws over it.
-            var nodeLayer = headSpace ? HeadNodeLayer : BodyNodeLayer;
-            var drawData = decoration.drawData;
-
-            var baseScale = drawData?.scale ?? 1f;
-            if (context.IsChild && drawData != null)
+            var offset = drawData?.OffsetForRot(rot) ?? Vector3.zero;
+            if (drawData is { scaleOffsetByBodySize: true })
             {
-                baseScale *= drawData.childScale;
+                offset *= context.BodySizeFactor;
+            }
+            offset += decorativeComp.GetAdditionalOffsetForRot(rot, decoration);
+
+            //Decoration layers are authored in pawn space, and the distance from the node is
+            //signed - a cape is authored behind the body and has to stay behind the armour.
+            var pawnLayer = drawData?.LayerForRot(rot, nodeLayer) ?? nodeLayer;
+            var layer = context.StandLayerFor(pawnLayer, headSpace)
+                        + decorativeComp.GetAdditionalLayerForRot(rot, decoration)
+                        + extraLayer;
+
+            var extraScale = decorativeComp.GetAdditionalScaleForRot(rot, decoration);
+            var scale = new Vector3(
+                decoration.drawSize.x * baseScale * extraScale.x,
+                1f,
+                decoration.drawSize.y * baseScale * extraScale.z);
+
+            var flipMesh = settings.Flipped ^ (drawData?.FlipForRot(rot) ?? false);
+            var angle = drawData?.RotationOffsetForRot(rot) ?? 0f;
+            if (flipMesh)
+            {
+                angle *= -1f;
             }
 
-            var showRotation = decoration.ShowRotation(settings.Flipped);
+            var draw = new OutfitStandDraw(graphic, layer, offset, scale, angle, flipMesh, settings.Flipped);
 
-            for (var i = 0; i < 4; i++)
+            if (headSpace)
             {
-                var rot = new Rot4(i);
-                if (showRotation != null && !showRotation.Contains(rot))
-                {
-                    continue;
-                }
-
-                var offset = drawData?.OffsetForRot(rot) ?? Vector3.zero;
-                if (drawData is { scaleOffsetByBodySize: true })
-                {
-                    offset *= context.BodySizeFactor;
-                }
-                offset += decorativeComp.GetAdditionalOffsetForRot(rot, decoration);
-
-                //Decoration layers are authored in pawn space, and the distance from the node is
-                //signed - a cape is authored behind the body and has to stay behind the armour.
-                var pawnLayer = drawData?.LayerForRot(rot, nodeLayer) ?? nodeLayer;
-                var layer = context.StandLayerFor(pawnLayer, headSpace)
-                            + decorativeComp.GetAdditionalLayerForRot(rot, decoration);
-
-                var extraScale = decorativeComp.GetAdditionalScaleForRot(rot, decoration);
-                var scale = new Vector3(
-                    decoration.drawSize.x * baseScale * extraScale.x,
-                    1f,
-                    decoration.drawSize.y * baseScale * extraScale.z);
-
-                var flipMesh = settings.Flipped ^ (drawData?.FlipForRot(rot) ?? false);
-                var angle = drawData?.RotationOffsetForRot(rot) ?? 0f;
-                if (flipMesh)
-                {
-                    angle *= -1f;
-                }
-
-                var draw = new OutfitStandDraw(graphic, layer, offset, scale, angle, flipMesh, settings.Flipped);
-
-                if (headSpace)
-                {
-                    context.AddHead(rot, draw);
-                }
-                else
-                {
-                    context.AddBody(rot, draw);
-                }
+                context.AddHead(rot, draw);
+            }
+            else
+            {
+                context.AddBody(rot, draw);
             }
         }
     }

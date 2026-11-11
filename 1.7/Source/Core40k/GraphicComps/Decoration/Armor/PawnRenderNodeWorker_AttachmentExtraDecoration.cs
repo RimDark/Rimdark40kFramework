@@ -71,7 +71,12 @@ public class PawnRenderNodeWorker_AttachmentExtraDecoration : PawnRenderNodeWork
         }
         
         layer += pawnRenderNode.decorativeComp.GetAdditionalLayerForRot(parms.facing, pawnRenderNode.decorationDef);
-        
+
+        if (pawnRenderNode.isGlowPass)
+        {
+            layer += ArmorDecorationGraphicUtility.GlowLayerOffset;
+        }
+
         return layer;
     }
     

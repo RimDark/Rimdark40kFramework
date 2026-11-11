@@ -11,4 +11,15 @@
     </shaderProgram>
   </ShaderDef>
 
+  <!-- Drawn over BEWH_CutoutThreeColor after the light overlay (3100), like TransparentPostLight. -->
+  <ShaderDef>
+    <defName>BEWH_GlowThreeColor</defName>
+    <shaderProgram>
+      <fragmentShaderFileName>BEWH_GlowThreeColor.frag.glsl</fragmentShaderFileName>
+      <transparent>true</transparent>
+      <depthWrite>false</depthWrite>
+      <renderQueue>3150</renderQueue>
+    </shaderProgram>
+  </ShaderDef>
+
 </Defs>
