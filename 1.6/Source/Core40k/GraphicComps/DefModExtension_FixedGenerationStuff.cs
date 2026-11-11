@@ -15,9 +15,18 @@ public class DefModExtension_FixedGenerationStuff : DefModExtension
     public ThingDef stuff;
 }
 
-[HarmonyPatch(typeof(PawnApparelGenerator), nameof(PawnApparelGenerator.Reset))]
+//Patched by hand once defs are loaded, not through PatchAll: patching PawnApparelGenerator.Reset runs the class's static constructor,
+//which calls Reset() and reads StatDefOf before defs exist, so patching it from the mod constructor crashes the game on 1.6.
+[StaticConstructorOnStartup]
 public static class HarmonyPatch_FixedGenerationStuff
 {
+    static HarmonyPatch_FixedGenerationStuff()
+    {
+        Core40kMod.harmony.Patch(AccessTools.Method(typeof(PawnApparelGenerator), nameof(PawnApparelGenerator.Reset)), postfix: new HarmonyMethod(typeof(HarmonyPatch_FixedGenerationStuff), nameof(Postfix)));
+        //The game already ran Reset() during loading, before this patch existed.
+        Postfix();
+    }
+
     private static readonly AccessTools.FieldRef<List<ThingStuffPair>> AllApparelPairs = AccessTools.StaticFieldRefAccess<List<ThingStuffPair>>(AccessTools.Field(typeof(PawnApparelGenerator), "allApparelPairs"));
 
     //Every way pawn generation picks apparel goes through allApparelPairs, so leaving one pair per def is enough.

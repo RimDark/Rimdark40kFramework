@@ -81,6 +81,7 @@
     <Compile Include="GraphicComps\DefModExtension_HidesHead.cs" />
     <Compile Include="GraphicComps\DefModExtension_IgnoreStuffColor.cs" />
     <Compile Include="GraphicComps\DefModExtension_FixedGenerationStuff.cs" />
+    <Compile Include="Scenario\ScenPart_StartingPawnKindXenotype.cs" />
     <Compile Include="GraphicComps\HarmonyPatch_AlternateFormRenderSkipFlags.cs" />
     <Compile Include="GraphicComps\HarmonyPatch_HideHeadPatch.cs" />
     <Compile Include="Repair\DefModExtension_RepairRecipe.cs" />

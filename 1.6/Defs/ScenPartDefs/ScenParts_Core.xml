@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <ScenPartDef>
+    <defName>BEWH_StartingPawnKindXenotype</defName>
+    <label>starting pawn kind xenotypes</label>
+    <description>Extra starting pawn choices keep the xenotypes of their pawn kind instead of being baseliners.</description>
+    <scenPartClass>Core40k.ScenPart_StartingPawnKindXenotype</scenPartClass>
+    <category>PlayerPawnModifier</category>
+    <canBeRandomlyAdded>false</canBeRandomlyAdded>
+    <summaryPriority>300</summaryPriority>
+    <maxUses>1</maxUses>
+  </ScenPartDef>
+
+</Defs>
