@@ -137,7 +137,11 @@ public class PawnRequirement_Ranks : PawnRequirement_List<RankData>
 {
     public List<RankData> ranks = [];
 
-    protected override List<RankData> Items => ranks;
+    //ranks without the entries whose rankDef didn't resolve (e.g. a rank from a mod that isn't loaded). Built on first use.
+    [Unsaved]
+    private List<RankData> resolvedRanks;
+
+    protected override List<RankData> Items => resolvedRanks ??= ranks?.Where(item => item?.rankDef != null).ToList();
     protected override string HeaderAllKey => "BEWH.Framework.RankSystem.RequirementsRanks";
     protected override string HeaderOneAmongKey => "BEWH.Framework.RankSystem.RequirementsRanksAtLeastOne";
 
