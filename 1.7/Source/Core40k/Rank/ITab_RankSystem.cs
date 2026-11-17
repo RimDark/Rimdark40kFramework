@@ -110,11 +110,18 @@ public class ITab_RankSystem : ITab
     public override void OnOpen()
     {
         base.OnOpen();
-        pawn = SelPawn;
-
         size = new Vector2(UI.screenWidth, PaneTopY - 100);
-        
-        compRankInfo = pawn.GetComp<CompRankInfo>();
+        ShowPawn(SelPawn);
+    }
+
+    /// <summary>
+    /// Points the tab at a pawn and rebuilds everything shown for it. Runs when the tab opens, and again when another
+    /// pawn is selected while it is open, so the tab follows the selection like the health tab does.
+    /// </summary>
+    private void ShowPawn(Pawn newPawn)
+    {
+        pawn = newPawn;
+        compRankInfo = pawn?.GetComp<CompRankInfo>();
         if (compRankInfo == null)
         {
             CloseTab();
@@ -122,6 +129,10 @@ public class ITab_RankSystem : ITab
         }
         rankPos.Clear();
         cachedGridBounds = null;
+        pendingFocusRank = null;
+        redoRankInfo = false;
+        treeDragging = false;
+        scrollPosRankInfo = Vector2.zero;
         UpdateRankCategoryList();
         if (compRankInfo.LastOpenedRankCategory != null && CanView(compRankInfo.LastOpenedRankCategory, pawn))
         {
@@ -146,10 +157,14 @@ public class ITab_RankSystem : ITab
 
     protected override void FillTab()
     {
+        //Another pawn was selected with the tab open: switch to its ranks rather than closing.
         if (pawn != SelPawn)
         {
-            CloseTab();
-            return;
+            ShowPawn(SelPawn);
+            if (compRankInfo == null)
+            {
+                return;
+            }
         }
 
         var font = Text.Font;
